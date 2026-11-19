@@ -272,7 +272,7 @@ private fun MonitorCard(
     val lastPing = last?.ping
     KumaCard(onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            StatusDot(if (status == -1) KumaStatus.PENDING else status, 11)
+            StatusDot(status, 11)
             Spacer(Modifier.width(9.dp))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -456,7 +456,7 @@ private fun MonitorTreeRow(
             .padding(vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatusDot(statusForMonitor(monitor, heartbeats[monitor.id]).let { if (it == -1) KumaStatus.PENDING else it }, 9)
+        StatusDot(statusForMonitor(monitor, heartbeats[monitor.id]), 9)
         Spacer(Modifier.width(9.dp))
         Column(Modifier.weight(1f)) {
             Text(monitor.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)

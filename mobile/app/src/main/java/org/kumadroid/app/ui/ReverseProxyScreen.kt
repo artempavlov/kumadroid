@@ -54,6 +54,9 @@ fun ReverseProxyScreen(repository: KumaRepository, onBack: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
+        if (repository.settings.value == null) {
+            runCatching { repository.loadSettings() }
+        }
         try {
             repository.joinCloudflared()
         } catch (e: Exception) {

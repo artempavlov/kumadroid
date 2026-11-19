@@ -303,6 +303,10 @@ class KumaRepository(private val context: Context) {
                 monitors.update { current -> current.filterNot { it.id == id } }
                 heartbeats.update { it - id }
                 importantBeats.update { it - id }
+                avgPing.update { it - id }
+                uptime.update { current -> current.filterKeys { !it.startsWith("${id}_") } }
+                certInfo.update { it - id }
+                domainInfo.update { it - id }
             }
             "monitorTypeList" -> {
                 monitorTypes.value = args.optJSONObject(0) ?: JSONObject()
@@ -337,7 +341,10 @@ class KumaRepository(private val context: Context) {
                 }
                 if (beat.important) {
                     importantBeats.update { current ->
-                        current + (beat.monitorId to (listOf(beat) + current[beat.monitorId].orEmpty()).take(500))
+                        val list = (listOf(beat) + current[beat.monitorId].orEmpty())
+                            .distinctBy { "${it.time}|${it.status}|${it.msg}|${it.ping}|${it.duration}" }
+                            .take(500)
+                        current + (beat.monitorId to list)
                     }
                 }
             }
@@ -358,8 +365,16 @@ class KumaRepository(private val context: Context) {
             "uptime" -> {
                 val id = args.optLong(0)
                 val type = args.optString(1)
-                val value = args.optDouble(2)
-                if (!value.isNaN()) uptime.update { it + ("${id}_$type" to value * 100.0) }
+                val raw = args.opt(2)
+                val value = when (raw) {
+                    null, JSONObject.NULL -> null
+                    is Number -> raw.toDouble()
+                    is String -> raw.toDoubleOrNull()
+                    else -> null
+                }
+                if (value != null && !value.isNaN()) {
+                    uptime.update { it + ("${id}_$type" to value * 100.0) }
+                }
             }
             "certInfo" -> {
                 val id = args.optLong(0)
@@ -436,7 +451,8 @@ class KumaRepository(private val context: Context) {
                 loadTags()
             } else {
                 token = null
-                prefs.edit().remove("token").apply()
+                prefs.edit().remove("token").remove("username").apply()
+                username.value = ""
                 loggedIn.value = false
                 status.value = ConnectionStatus.LoggedOut
                 statusMessage.value = "Session expired. Please sign in."
@@ -492,6 +508,12 @@ class KumaRepository(private val context: Context) {
     suspend fun refreshAll() {
         val ack = socket.requestObject("getMonitorList")
         ensureOk(ack)
+        // The server does not push these lists on every change, and a refresh
+        // action in the UI is expected to update more than the monitor cards.
+        runCatching {
+            ensureOk(socket.requestObject("getMaintenanceList"))
+        }
+        loadTags()
     }
 
     suspend fun loadTags() {
@@ -558,10 +580,15 @@ class KumaRepository(private val context: Context) {
 
     suspend fun clearEvents(id: Long) {
         ensureOk(socket.requestObject("clearEvents", id))
+        importantBeats.update { it - id }
     }
 
     suspend fun clearHeartbeats(id: Long) {
         ensureOk(socket.requestObject("clearHeartbeats", id))
+        heartbeats.update { it - id }
+        importantBeats.update { it - id }
+        avgPing.update { it - id }
+        uptime.update { current -> current.filterKeys { !it.startsWith("${id}_") } }
     }
 
     suspend fun addTag(name: String, color: String): Long {
@@ -629,6 +656,13 @@ class KumaRepository(private val context: Context) {
         val ack = socket.requestObject("getSettings")
         ensureOk(ack)
         return ack.optJSONObject("data") ?: JSONObject()
+    }
+
+    /** Loads settings into shared state so screens can read auth mode and other flags. */
+    suspend fun loadSettings(): JSONObject {
+        val data = getSettings()
+        settings.value = data
+        return data
     }
 
     suspend fun setSettings(data: JSONObject, currentPassword: String? = null) {

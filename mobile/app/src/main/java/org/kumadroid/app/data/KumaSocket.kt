@@ -237,6 +237,11 @@ class KumaSocket(private val scope: CoroutineScope) {
                 }
                 '1' -> {
                     socketConnected = false
+                    // Forget this socket so the later WebSocket close callback
+                    // does not report a duplicate disconnect.
+                    if (this@KumaSocket.webSocket === ws) this@KumaSocket.webSocket = null
+                    pending.values.forEach { it.completeExceptionally(KumaException("Session closed")) }
+                    pending.clear()
                     _events.tryEmit(SocketEvent.Disconnected("Server closed the session", 1000))
                 }
                 '2' -> {

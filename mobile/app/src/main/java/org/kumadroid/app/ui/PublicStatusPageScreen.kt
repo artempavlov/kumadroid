@@ -148,8 +148,12 @@ fun PublicStatusPageScreen(
         // part in the overall status. Missing heartbeats must not turn the page
         // green before the first check has completed.
         val knownStatuses = allStatuses.filter { it >= 0 }
+        val maintenanceActive = (0 until maintenance.length()).any {
+            maintenance.optJSONObject(it)?.str("status") == "under-maintenance"
+        }
         val overall = when {
             knownStatuses.isEmpty() -> -1
+            maintenanceActive -> KumaStatus.MAINTENANCE
             knownStatuses.any { it == KumaStatus.MAINTENANCE } -> KumaStatus.MAINTENANCE
             knownStatuses.any { it == KumaStatus.DOWN || it == KumaStatus.PENDING } -> KumaStatus.DOWN
             else -> KumaStatus.UP
@@ -266,7 +270,12 @@ fun PublicStatusPageScreen(
                             val id = monitor.long("id")
                             val beats = beatsFor(id)
                             val status = beats.lastOrNull()?.status ?: -1
-                            val uptime = hb.optJSONObject("uptimeList")?.optDouble("${id}_24", -1.0)?.let { if (it >= 0) it * 100.0 else it } ?: -1.0
+                            val uptimeValue = hb.optJSONObject("uptimeList")?.opt("${id}_24")
+                            val uptime = when (uptimeValue) {
+                                is Number -> uptimeValue.toDouble() * 100.0
+                                is String -> uptimeValue.toDoubleOrNull()?.times(100.0)
+                                else -> null
+                            }
                             Column(Modifier.padding(vertical = 5.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     StatusDot(status, 10)
@@ -289,9 +298,9 @@ fun PublicStatusPageScreen(
                                         }
                                     }
                                     Text(
-                                        if (uptime >= 0) formatPercent(uptime) else "—",
+                                        if (uptime != null && uptime >= 0) formatPercent(uptime) else "—",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = if (uptime >= 99.0) KumaColors.Up else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if ((uptime ?: -1.0) >= 99.0) KumaColors.Up else MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 if (beats.isNotEmpty()) {
@@ -334,13 +343,7 @@ fun PublicStatusPageScreen(
 @Composable
 private fun IncidentCard(incident: JSONObject) {
     val style = incident.str("style", "warning")
-    val color = when (style) {
-        "danger" -> KumaColors.Down
-        "info" -> KumaColors.Pending
-        "primary" -> KumaColors.Brand
-        "light", "dark" -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> KumaColors.Pending
-    }
+    val color = incidentColor(style)
     KumaCard(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(9.dp).clip(CircleShape).background(color))
@@ -384,7 +387,7 @@ private fun MaintenanceNotice(item: JSONObject) {
             Text(
                 item.str("status").replace("-", " "),
                 style = MaterialTheme.typography.labelSmall,
-                color = KumaColors.Maintenance,
+                color = if (item.str("status") == "under-maintenance") KumaColors.Maintenance else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         val description = item.str("description")
@@ -398,12 +401,17 @@ private fun MaintenanceNotice(item: JSONObject) {
         }
         val dates = item.optJSONArray("dateRange")
         if (dates != null && dates.length() >= 2) {
-            val start = dates.optString(0)
-            val end = dates.optString(1)
+            fun dateText(index: Int): String {
+                val value = dates.opt(index) ?: return ""
+                if (value == JSONObject.NULL) return ""
+                return value.toString().replace("T", " ").take(16)
+            }
+            val start = dateText(0)
+            val end = dateText(1)
             if (start.isNotBlank() || end.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "${start.replace("T", " ").take(16)} → ${end.replace("T", " ").take(16)}",
+                    "${start.ifBlank { "?" }} → ${end.ifBlank { "?" }}",
                     style = MaterialTheme.typography.labelSmall,
                 )
             }

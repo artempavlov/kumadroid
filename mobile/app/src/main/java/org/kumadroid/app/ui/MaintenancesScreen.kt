@@ -137,7 +137,7 @@ private fun MaintenanceCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    StatusPill(if (active) 3 else 0, if (active) "Active" else "Paused")
+                    StatusPill(if (active) 3 else -1, if (active) "Active" else "Paused")
                 }
                 Text(
                     strategyLabel(strategy),

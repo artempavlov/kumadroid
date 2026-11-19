@@ -212,17 +212,58 @@ fun MaintenanceEditScreen(
             error = "Title is required"
             return
         }
-        if (strategy == "single") {
+        fun validTime(value: String): Boolean {
+            val parts = value.trim().split(":")
+            if (parts.size != 2) return false
+            val hours = parts[0].toIntOrNull() ?: return false
+            val minutes = parts[1].toIntOrNull() ?: return false
+            return hours in 0..23 && minutes in 0..59
+        }
+        if (strategy != "manual") {
             val start = runCatching { LocalDateTime.parse(dateStart, dateTimeFormat) }.getOrNull()
             val end = runCatching { LocalDateTime.parse(dateEnd, dateTimeFormat) }.getOrNull()
             if (start == null || end == null) {
-                error = "Use date format yyyy-MM-ddTHH:mm"
+                error = "Use date format yyyy-MM-ddTHH:mm in the effective date range"
                 return
             }
             if (!end.isAfter(start)) {
                 error = "End must be after start"
                 return
             }
+        }
+        when (strategy) {
+            "cron" -> {
+                if (cron.trim().split(Regex("\\s+")).size != 5) {
+                    error = "Cron expression must have five fields"
+                    return
+                }
+                if ((duration.toIntOrNull() ?: 0) <= 0) {
+                    error = "Duration must be greater than zero"
+                    return
+                }
+            }
+            "recurring-interval" -> {
+                if ((intervalDay.toIntOrNull() ?: 0) <= 0) {
+                    error = "Interval must be greater than zero"
+                    return
+                }
+            }
+            "recurring-weekday" -> {
+                if (weekdays.isEmpty()) {
+                    error = "Select at least one day of the week"
+                    return
+                }
+            }
+            "recurring-day-of-month" -> {
+                if (daysOfMonth.isEmpty()) {
+                    error = "Select at least one day of the month"
+                    return
+                }
+            }
+        }
+        if (strategy.startsWith("recurring-") && (!validTime(timeStart) || !validTime(timeEnd))) {
+            error = "Use HH:mm for the daily time window"
+            return
         }
         saving = true
         scope.launch {

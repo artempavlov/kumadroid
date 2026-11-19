@@ -238,7 +238,9 @@ fun LoginScreen(repository: KumaRepository, onEditServer: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onEditServer) { Text("Change server") }
             Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onEditServer) { Text("Troubleshoot") }
+            TextButton(onClick = { error = ""; repository.connectServer(repository.serverUrl, repository.allowInsecureTls) }) {
+                Text("Reconnect")
+            }
         }
         Text(
             "Connected to ${repository.serverUrl}",

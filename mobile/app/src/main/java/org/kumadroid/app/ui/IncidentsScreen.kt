@@ -40,7 +40,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -57,15 +56,6 @@ private val incidentStyles = listOf(
     "light" to "Light",
     "dark" to "Dark",
 )
-
-private fun incidentColor(style: String): Color = when (style) {
-    "info" -> KumaColors.Brand
-    "danger" -> KumaColors.Down
-    "primary" -> Color(0xFF8B5CF6)
-    "light" -> Color(0xFF94A3B8)
-    "dark" -> Color(0xFF475569)
-    else -> KumaColors.Pending
-}
 
 @Composable
 fun IncidentsScreen(repository: KumaRepository, slug: String, onBack: () -> Unit) {
@@ -87,7 +77,7 @@ fun IncidentsScreen(repository: KumaRepository, slug: String, onBack: () -> Unit
             val parsed = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
             incidents = (if (append) incidents + parsed else parsed)
                 .distinctBy { it.optString("id").ifBlank { it.toString() } }
-            nextCursor = ack.optString("nextCursor").takeIf { it.isNotBlank() }
+            nextCursor = ack.optString("nextCursor").takeIf { it.isNotBlank() && it != "null" }
             hasMore = ack.optBoolean("hasMore")
             error = ""
         } catch (e: Exception) {

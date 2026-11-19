@@ -364,6 +364,9 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
 
     fun configOrError(): JSONObject? = try {
         currentConfig()
+    } catch (e: IllegalArgumentException) {
+        error = e.message ?: "Invalid notification configuration."
+        null
     } catch (e: Exception) {
         error = "Configuration is not valid JSON: ${e.message}"
         null

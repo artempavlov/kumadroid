@@ -93,6 +93,13 @@ object MonitorCatalog {
         else -> 0
     }
 
+    fun defaultTimeout(type: String): Int = when (type) {
+        "ping" -> 10
+        "snmp" -> 5
+        "kafka-producer" -> 1
+        else -> 48
+    }
+
     fun defaultFor(type: String): JSONObject = JSONObject().apply {
         put("type", type)
         put("name", "")
@@ -194,12 +201,7 @@ object MonitorCatalog {
         put("resendInterval", 0)
         put("maxretries", 0)
         put("retryOnlyOnStatusCodeFailure", false)
-        put("timeout", when (type) {
-            "ping" -> 10
-            "snmp" -> 5
-            "kafka-producer" -> 1
-            else -> 48
-        })
+        put("timeout", defaultTimeout(type))
         put("active", true)
         put("manual_status", 1)
         put("ignoreTls", false)

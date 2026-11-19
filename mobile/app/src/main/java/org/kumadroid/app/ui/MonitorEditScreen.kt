@@ -178,7 +178,7 @@ fun MonitorEditScreen(
                 val tag = MonitorTag(item)
                 parsedTags.add(tag)
             }
-            oldTags = if (cloneFromId != null) emptyList() else parsedTags
+            oldTags = parsedTags
             selectedTagIds = parsedTags.map { it.id }
         } catch (e: Exception) {
             loadingError = e.message ?: "Could not load monitor"
@@ -260,6 +260,13 @@ fun MonitorEditScreen(
             saveError = "Connection string is required."
             return
         }
+        if (type == "port") {
+            val parsedPort = json.str("port").trim().toIntOrNull()
+            if (parsedPort == null || parsedPort !in 1..65535) {
+                saveError = "Port must be between 1 and 65535."
+                return
+            }
+        }
 
         val payload = JSONObject(json.toString())
         payload.put("notificationIDList", json.optJSONObject("notificationIDList") ?: JSONObject())
@@ -270,7 +277,7 @@ fun MonitorEditScreen(
         payload.put("retryInterval", json.str("retryInterval").toIntOrNull() ?: 60)
         payload.put("resendInterval", json.str("resendInterval").toIntOrNull() ?: 0)
         payload.put("maxretries", json.str("maxretries").toIntOrNull() ?: 0)
-        payload.put("timeout", json.str("timeout").toIntOrNull() ?: 48)
+        payload.put("timeout", json.str("timeout").toIntOrNull() ?: MonitorCatalog.defaultTimeout(type))
         payload.put("maxredirects", json.str("maxredirects").toIntOrNull() ?: 10)
         payload.put("responseMaxLength", json.str("responseMaxLength").toIntOrNull() ?: 1024)
         payload.put("screenshot_delay", json.str("screenshot_delay").toIntOrNull() ?: 0)
@@ -288,7 +295,8 @@ fun MonitorEditScreen(
 
         val accepted = json.optJSONArray("accepted_statuscodes")
         if (accepted == null || accepted.length() == 0) {
-            payload.put("accepted_statuscodes", JSONArray().put("200-299"))
+            val fallback = if (type == "websocket-upgrade") "1000" else "200-299"
+            payload.put("accepted_statuscodes", JSONArray().put(fallback))
         }
         val conditionsText = json.str("conditionsText")
         if (conditionsText.isNotBlank()) {
@@ -340,7 +348,10 @@ fun MonitorEditScreen(
                             .put("color", tag.color).put("value", oldTags.firstOrNull { it.id == tag.id }?.value ?: ""))
                     }
                 }
-                repository.syncMonitorTags(id, oldTags, newTags)
+                // A clone starts with no tag rows on the server, so every selected
+                // tag must be added even though its value comes from the source.
+                val tagBase = if (cloneFromId != null) emptyList() else oldTags
+                repository.syncMonitorTags(id, tagBase, newTags)
                 repository.refreshAll()
                 onSaved(id)
             } catch (e: Exception) {

@@ -87,6 +87,15 @@ fun statusColor(status: Int): Color = when (status) {
 
 fun statusLabel(status: Int): String = KumaStatus.label(status)
 
+fun incidentColor(style: String): Color = when (style) {
+    "info" -> KumaColors.Brand
+    "danger" -> KumaColors.Down
+    "primary" -> Color(0xFF8B5CF6)
+    "light" -> Color(0xFF94A3B8)
+    "dark" -> Color(0xFF475569)
+    else -> KumaColors.Pending
+}
+
 fun statusForMonitor(monitor: Monitor, beats: List<Beat>?): Int {
     if (monitor.json.bool("maintenance")) return KumaStatus.MAINTENANCE
     if (!monitor.active) return -1

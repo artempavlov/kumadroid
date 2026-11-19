@@ -226,6 +226,7 @@ fun MonitorDetailScreen(
                                 leadingIcon = { Icon(if (monitor.active) Icons.Default.Pause else Icons.Default.PlayArrow, null) },
                                 onClick = {
                                     menuOpen = false
+                                    error = ""
                                     scope.launch {
                                         try {
                                             if (monitor.active) repository.pauseMonitor(monitor.id) else repository.resumeMonitor(monitor.id)
@@ -268,11 +269,11 @@ fun MonitorDetailScreen(
                 }
                 KumaCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        StatusDot(if (status == -1) KumaStatus.PENDING else status, 13)
+                        StatusDot(status, 13)
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                StatusPill(if (status == -1) KumaStatus.PENDING else status, if (!monitor.active) "Paused" else statusLabel(status))
+                                StatusPill(status, if (!monitor.active) "Paused" else statusLabel(status))
                                 if (monitor.json.bool("maintenance")) {
                                     Spacer(Modifier.width(6.dp))
                                     StatusPill(KumaStatus.MAINTENANCE, "Maintenance")
@@ -574,6 +575,7 @@ fun MonitorDetailScreen(
             destructive = true,
             onDismiss = { confirmDelete = false },
             onConfirm = {
+                error = ""
                 scope.launch {
                     try {
                         repository.deleteMonitor(monitor.id, true)
@@ -597,11 +599,17 @@ fun MonitorDetailScreen(
             destructive = true,
             onDismiss = { confirmClear = null },
             onConfirm = {
+                error = ""
                 scope.launch {
                     try {
-                        if (what == "events") repository.clearEvents(monitor.id) else repository.clearHeartbeats(monitor.id)
+                        if (what == "events") {
+                            repository.clearEvents(monitor.id)
+                        } else {
+                            repository.clearHeartbeats(monitor.id)
+                            history = emptyList()
+                            chart = emptyList()
+                        }
                         repository.refreshAll()
-                        history = emptyList()
                     } catch (e: Exception) {
                         error = e.message ?: "Action failed"
                     }

@@ -271,6 +271,7 @@ private fun DockerHostsScreen(repository: KumaRepository, onBack: () -> Unit) {
 
     if (creating || editing != null) {
         val target = editing
+        LaunchedEffect(creating, editing) { error = "" }
         var name by remember(target?.toString(), creating) { mutableStateOf(target?.str("name") ?: "") }
         var type by remember(target?.toString(), creating) { mutableStateOf(target?.str("dockerType") ?: "socket") }
         var daemon by remember(target?.toString(), creating) {
@@ -388,6 +389,7 @@ private fun ProxiesScreen(repository: KumaRepository, onBack: () -> Unit) {
 
     if (creating || editing != null) {
         val target = editing
+        LaunchedEffect(creating, editing) { error = "" }
         var protocol by remember(target?.toString(), creating) { mutableStateOf(target?.str("protocol") ?: "http") }
         var host by remember(target?.toString(), creating) { mutableStateOf(target?.str("host") ?: "") }
         var port by remember(target?.toString(), creating) { mutableStateOf(target?.str("port") ?: "") }
@@ -535,6 +537,7 @@ private fun RemoteBrowsersScreen(repository: KumaRepository, onBack: () -> Unit)
 
     if (creating || editing != null) {
         val target = editing
+        LaunchedEffect(creating, editing) { error = "" }
         var name by remember(target?.toString(), creating) { mutableStateOf(target?.str("name") ?: "") }
         var url by remember(target?.toString(), creating) { mutableStateOf(target?.str("url") ?: "") }
         var busy by remember { mutableStateOf(false) }
