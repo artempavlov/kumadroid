@@ -6,7 +6,7 @@ redroid/
 __pycache__/
 *.pyc
 .venv/
-data/
+/data/
 build/
 .gradle/
 mobile/.gradle/

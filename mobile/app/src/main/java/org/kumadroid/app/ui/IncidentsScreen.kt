@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import org.kumadroid.app.data.KumaRepository
+import org.kumadroid.app.data.bool
 
 private val incidentStyles = listOf(
     "info" to "Info",
@@ -153,7 +154,7 @@ fun IncidentsScreen(repository: KumaRepository, slug: String, onBack: () -> Unit
                 ) { Text(if (loading) "Loading…" else "Load more") }
             }
         }
-        if (incidents.any { it.optBoolean("pin") }) {
+        if (incidents.any { it.bool("pin") }) {
             item {
                 TextButton(
                     onClick = {
@@ -223,7 +224,7 @@ private fun IncidentCard(
     var menu by remember { mutableStateOf(false) }
     val style = incident.optString("style", "warning")
     val color = incidentColor(style)
-    val active = incident.optBoolean("active")
+    val active = incident.bool("active")
     KumaCard(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
@@ -233,7 +234,7 @@ private fun IncidentCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    if (incident.optBoolean("pin")) {
+                    if (incident.bool("pin")) {
                         Icon(Icons.Default.PushPin, null, tint = color, modifier = Modifier.height(16.dp))
                     }
                 }
@@ -289,7 +290,7 @@ private fun IncidentEditorDialog(
     var title by remember { mutableStateOf(initial?.optString("title").orEmpty()) }
     var content by remember { mutableStateOf(initial?.optString("content").orEmpty()) }
     var style by remember { mutableStateOf(initial?.optString("style", "warning") ?: "warning") }
-    var pin by remember { mutableStateOf(initial?.optBoolean("pin", true) ?: true) }
+    var pin by remember { mutableStateOf(initial?.bool("pin", true) ?: true) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -316,9 +317,13 @@ private fun IncidentEditorDialog(
                     options = incidentStyles,
                     onSelect = { style = it },
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Pin to top", modifier = Modifier.weight(1f))
-                    Switch(checked = pin, onCheckedChange = { pin = it })
+                // Uptime Kuma always pins newly posted incidents; the switch only
+                // has an effect when an existing incident is edited.
+                if (initial != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Pin to top", modifier = Modifier.weight(1f))
+                        Switch(checked = pin, onCheckedChange = { pin = it })
+                    }
                 }
             }
         },

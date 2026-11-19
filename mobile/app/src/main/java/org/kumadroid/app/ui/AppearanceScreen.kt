@@ -78,8 +78,8 @@ fun AppearanceScreen(repository: KumaRepository, onBack: () -> Unit) {
                         "Style",
                         elapsedStyle,
                         listOf(
-                            "with-line" to "With separator — 12s ago",
-                            "no-line" to "No separator — 12s ago",
+                            "with-line" to "Dot separator — Up · 12s ago",
+                            "no-line" to "Space separator — Up 12s ago",
                             "none" to "Hide elapsed time",
                         ),
                         { repository.setElapsedTimeStyle(it) },

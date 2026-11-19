@@ -31,6 +31,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +83,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = androidx.compose.ui.platform.LocalContext.current
             val repository = remember { KumaRepository(context.applicationContext) }
+            DisposableEffect(repository) {
+                onDispose { repository.close() }
+            }
             val theme by repository.appTheme.collectAsStateWithLifecycle()
             val darkTheme = when (theme) {
                 "dark" -> true
@@ -99,7 +103,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun KumaApp(repository: KumaRepository) {
-    val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val navigator = remember { Navigator() }
 

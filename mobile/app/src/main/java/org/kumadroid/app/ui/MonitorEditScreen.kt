@@ -42,6 +42,7 @@ import org.kumadroid.app.data.KumaRepository
 import org.kumadroid.app.data.MonitorCatalog
 import org.kumadroid.app.data.MonitorTag
 import org.kumadroid.app.data.MonitorCatalog.draft
+import org.kumadroid.app.data.bool
 import org.kumadroid.app.data.long
 import org.kumadroid.app.data.numOr
 import org.kumadroid.app.data.str
@@ -70,7 +71,7 @@ private class MonitorForm(initial: JSONObject) {
 
     fun bool(key: String, fallback: Boolean = false): Boolean {
         revision
-        return json.optBoolean(key, fallback)
+        return json.bool(key, fallback)
     }
 
     fun set(key: String, value: Any?) {
@@ -104,7 +105,7 @@ private class MonitorForm(initial: JSONObject) {
 
     fun notificationEnabled(id: Long): Boolean {
         revision
-        return json.optJSONObject("notificationIDList")?.optBoolean(id.toString(), false) ?: false
+        return json.optJSONObject("notificationIDList")?.bool(id.toString(), false) ?: false
     }
 
     fun toggleNotification(id: Long, enabled: Boolean) {
@@ -204,6 +205,7 @@ fun MonitorEditScreen(
             "maxretries", "retryOnlyOnStatusCodeFailure", "active", "notificationIDList",
             "upsideDown", "expiryNotification",
         ).forEach { key -> if (old.has(key)) fresh.put(key, old.get(key)) }
+        if (newType == "push") fresh.put("pushToken", MonitorCatalog.newPushToken())
         current.replace(fresh)
     }
 
@@ -270,8 +272,11 @@ fun MonitorEditScreen(
         payload.put("ntpStratumThreshold", json.str("ntpStratumThreshold").toIntOrNull() ?: 5)
         payload.put("ntpTimeOffsetThreshold", json.str("ntpTimeOffsetThreshold").toIntOrNull() ?: 1000)
         payload.put("ntpRootDispersionThreshold", json.str("ntpRootDispersionThreshold").toIntOrNull() ?: 500)
-        payload.put("ping_numeric", json.boolOrSafe("ping_numeric"))
-        payload.put("retryOnlyOnStatusCodeFailure", json.boolOrSafe("retryOnlyOnStatusCodeFailure"))
+        payload.put("ping_numeric", json.bool("ping_numeric"))
+        payload.put("retryOnlyOnStatusCodeFailure", json.bool("retryOnlyOnStatusCodeFailure"))
+        if (type == "push" && json.str("pushToken").trim().length != 32) {
+            payload.put("pushToken", MonitorCatalog.newPushToken())
+        }
 
         val accepted = json.optJSONArray("accepted_statuscodes")
         if (accepted == null || accepted.length() == 0) {
@@ -293,9 +298,12 @@ fun MonitorEditScreen(
         } else {
             payload.put("parent", json.str("parent").toLongOrNull() ?: JSONObject.NULL)
         }
-        if (json.str("docker_host").isBlank()) payload.put("docker_host", JSONObject.NULL)
-        if (json.str("proxyId").isBlank()) payload.put("proxyId", JSONObject.NULL)
-        if (json.str("remote_browser").isBlank()) payload.put("remote_browser", JSONObject.NULL)
+        // Picker values are stored as strings in the form, but the server stores
+        // these references as numeric IDs (or null).
+        listOf("docker_host", "proxyId", "remote_browser").forEach { key ->
+            val value = json.str(key).trim().toLongOrNull()
+            payload.put(key, value ?: JSONObject.NULL)
+        }
         if (json.str("authMethod").isBlank()) payload.put("authMethod", JSONObject.NULL)
 
         // These are read-only/computed values from getMonitor and the web client.
@@ -966,16 +974,5 @@ fun MonitorEditScreen(
                 }
             }
         }
-    }
-}
-
-private fun JSONObject.boolOrSafe(key: String): Boolean {
-    if (!has(key) || isNull(key)) return false
-    val value = opt(key)
-    return when (value) {
-        is Boolean -> value
-        is String -> value == "true"
-        is Number -> value.toInt() != 0
-        else -> false
     }
 }

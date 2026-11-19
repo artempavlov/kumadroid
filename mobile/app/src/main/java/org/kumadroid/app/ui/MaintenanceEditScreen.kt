@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import org.kumadroid.app.data.KumaRepository
+import org.kumadroid.app.data.bool
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -143,7 +144,7 @@ fun MaintenanceEditScreen(
             title = obj.optString("title")
             description = obj.optString("description")
             strategy = obj.optString("strategy", "single")
-            active = obj.optBoolean("active", true)
+            active = obj.bool("active", true)
             cron = obj.optString("cron", "30 3 * * *")
             duration = obj.optInt("durationMinutes", 60).toString()
             intervalDay = obj.optInt("intervalDay", 1).toString()

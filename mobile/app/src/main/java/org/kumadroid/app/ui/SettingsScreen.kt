@@ -126,15 +126,15 @@ fun SettingsScreen(
 
         item { SettingsGroup("Account & server") }
         item {
-            SettingsRow(Icons.Default.Settings, "General", "Server name, timezone, entry page and retention") { onNavigate(Screen.GeneralSettings) }
-            SettingsRow(Icons.Default.Security, "Security", "Password, two-factor authentication and API keys") { onNavigate(Screen.SecuritySettings) }
+            SettingsRow(Icons.Default.Settings, "General", "Timezone, entry page, retention and updates") { onNavigate(Screen.GeneralSettings) }
+            SettingsRow(Icons.Default.Security, "Security", "Password and two-factor authentication") { onNavigate(Screen.SecuritySettings) }
             SettingsRow(Icons.Default.Storage, "Data", "Database size, retention and statistics") { onNavigate(Screen.DataSettings) }
             SettingsRow(Icons.Default.Api, "API keys", "Keys for the push and badge endpoints") { onNavigate(Screen.ApiKeys) }
         }
 
         item { SettingsGroup("About") }
         item {
-            SettingsRow(Icons.Default.Info, "About KumaDroid", "Version, uptime and open-source licenses") { onNavigate(Screen.About) }
+            SettingsRow(Icons.Default.Info, "About KumaDroid", "App and server version information") { onNavigate(Screen.About) }
             SettingsRow(Icons.AutoMirrored.Filled.Logout, "Sign out", "Forget the saved session", tint = MaterialTheme.colorScheme.error) {
                 logoutConfirm = true
             }

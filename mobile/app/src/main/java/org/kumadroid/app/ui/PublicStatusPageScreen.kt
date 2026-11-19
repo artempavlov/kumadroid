@@ -27,8 +27,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import org.kumadroid.app.data.Beat
@@ -60,12 +63,16 @@ fun PublicStatusPageScreen(
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
+    var refreshSeconds by remember { mutableIntStateOf(30) }
+    val scope = rememberCoroutineScope()
 
     suspend fun load(first: Boolean) {
         if (first) loading = true else refreshing = true
         try {
             data = repository.fetchStatusPageData(slug)
             heartbeats = repository.fetchStatusPageHeartbeats(slug)
+            refreshSeconds = (data?.optJSONObject("config")?.num("autoRefreshInterval", 300) ?: 300)
+                .coerceAtLeast(5)
             error = ""
         } catch (e: Exception) {
             error = e.message ?: "Could not load status page"
@@ -78,7 +85,7 @@ fun PublicStatusPageScreen(
     LaunchedEffect(slug) {
         load(true)
         while (true) {
-            delay(30_000)
+            delay(refreshSeconds * 1_000L)
             load(false)
         }
     }
@@ -88,8 +95,8 @@ fun PublicStatusPageScreen(
             if (refreshing) {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = KumaColors.Brand)
             } else {
-                IconButton(onClick = { /* reloaded automatically */ }) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
+                IconButton(onClick = { scope.launch { load(false) } }) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh status page")
                 }
             }
             IconButton(onClick = onIncidents) { Icon(Icons.Default.Report, contentDescription = "Incidents") }
@@ -107,7 +114,7 @@ fun PublicStatusPageScreen(
                 title = "Status page unavailable",
                 message = error.ifBlank { "Check the status page slug and server connection." },
                 actionLabel = "Retry",
-                onAction = { /* LaunchedEffect owns refresh */ },
+                onAction = { scope.launch { load(true) } },
             )
             return@Column
         }
@@ -137,10 +144,11 @@ fun PublicStatusPageScreen(
                 allStatuses += beatsFor(monitor.long("id")).lastOrNull()?.status ?: -1
             }
         }
+        // Match Uptime Kuma: maintenance on any monitor takes precedence.
         val overall = when {
             allStatuses.isEmpty() -> -1
-            allStatuses.any { it == KumaStatus.DOWN || it == KumaStatus.PENDING } -> KumaStatus.DOWN
             allStatuses.any { it == KumaStatus.MAINTENANCE } -> KumaStatus.MAINTENANCE
+            allStatuses.any { it == KumaStatus.DOWN || it == KumaStatus.PENDING } -> KumaStatus.DOWN
             else -> KumaStatus.UP
         }
         val overallLabel = when (overall) {
@@ -202,7 +210,7 @@ fun PublicStatusPageScreen(
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
-                            "Auto-refresh 30s",
+                            "Auto-refresh ${refreshSeconds}s",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -65,11 +66,6 @@ object SubSettingsScreen {
             Kind.About -> AboutScreen(repository, onBack)
         }
     }
-}
-
-private fun MB(bytes: Long): String = when {
-    bytes > 1024L * 1024 * 1024 -> String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024))
-    else -> String.format("%.1f MB", bytes / (1024.0 * 1024))
 }
 
 @Composable
@@ -400,6 +396,8 @@ private fun ProxiesScreen(repository: KumaRepository, onBack: () -> Unit) {
         var isDefault by remember(target?.toString(), creating) { mutableStateOf(target?.bool("default") ?: false) }
         var applyExisting by remember(target?.toString(), creating) { mutableStateOf(target?.bool("applyExisting") ?: false) }
         var busy by remember { mutableStateOf(false) }
+        val portNumber = port.toIntOrNull()
+        val portValid = portNumber != null && portNumber in 1..65535
         AlertDialog(
             onDismissRequest = { if (!busy) { creating = false; editing = null } },
             title = { Text(if (target == null) "New proxy" else "Edit proxy") },
@@ -411,7 +409,11 @@ private fun ProxiesScreen(repository: KumaRepository, onBack: () -> Unit) {
                         { protocol = it },
                     )
                     Field("Host", host, { host = it })
-                    Field("Port", port, { port = it.filter(Char::isDigit) })
+                    Field(
+                        "Port", port, { port = it.filter(Char::isDigit) },
+                        supporting = if (port.isNotBlank() && !portValid) "Enter a port from 1 to 65535." else null,
+                        keyboardType = KeyboardType.Number,
+                    )
                     SwitchRow("Authentication", auth, { auth = it })
                     if (auth) {
                         Field("Username", username, { username = it })
@@ -428,7 +430,7 @@ private fun ProxiesScreen(repository: KumaRepository, onBack: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    enabled = host.isNotBlank() && port.isNotBlank() && !busy,
+                    enabled = host.isNotBlank() && portValid && !busy,
                     onClick = {
                         scope.launch {
                             busy = true
@@ -437,7 +439,7 @@ private fun ProxiesScreen(repository: KumaRepository, onBack: () -> Unit) {
                                 val body = JSONObject()
                                     .put("protocol", protocol)
                                     .put("host", host.trim())
-                                    .put("port", port.toIntOrNull() ?: 0)
+                                    .put("port", portNumber ?: 0)
                                     .put("auth", auth)
                                     .put("username", username)
                                     .put("password", password)
@@ -540,7 +542,7 @@ private fun RemoteBrowsersScreen(repository: KumaRepository, onBack: () -> Unit)
             text = {
                 Column {
                     Field("Name", name, { name = it })
-                    Field("WebSocket URL", url, { url = it }, supporting = "For example http://chrome:3000")
+                    Field("Browser URL", url, { url = it }, supporting = "For example http://chrome:3000")
                     if (error.isNotBlank()) {
                         Spacer(Modifier.height(8.dp))
                         Text(error, color = KumaColors.Down, style = MaterialTheme.typography.bodySmall)

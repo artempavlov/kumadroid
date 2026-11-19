@@ -24,7 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.kumadroid.app.data.KumaRepository
 import org.kumadroid.app.data.bool
 
@@ -52,6 +55,11 @@ fun ReverseProxyScreen(repository: KumaRepository, onBack: () -> Unit) {
             repository.joinCloudflared()
         } catch (e: Exception) {
             error = e.message ?: "Could not load Cloudflare Tunnel status"
+        }
+        try {
+            awaitCancellation()
+        } finally {
+            withContext(NonCancellable) { repository.leaveCloudflared() }
         }
     }
 

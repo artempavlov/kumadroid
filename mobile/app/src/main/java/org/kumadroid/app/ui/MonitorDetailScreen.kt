@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,6 +66,7 @@ import org.kumadroid.app.data.Beat
 import org.kumadroid.app.data.KumaRepository
 import org.kumadroid.app.data.KumaStatus
 import org.kumadroid.app.data.Monitor
+import org.kumadroid.app.data.MonitorCatalog
 import org.kumadroid.app.data.bool
 import org.kumadroid.app.data.dbl
 import org.kumadroid.app.data.long
@@ -99,8 +101,8 @@ fun MonitorDetailScreen(
 
     var history by remember { mutableStateOf<List<Beat>>(emptyList()) }
     var chart by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
-    var historyHours by remember { mutableStateOf(24) }
-    var chartHours by remember { mutableStateOf(24) }
+    var historyHours by remember { mutableIntStateOf(24) }
+    var chartHours by remember { mutableIntStateOf(24) }
     var loadingHistory by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -108,7 +110,7 @@ fun MonitorDetailScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var screenshot by remember { mutableStateOf<ImageBitmap?>(null) }
     var screenshotError by remember { mutableStateOf("") }
-    var screenshotReload by remember { mutableStateOf(0) }
+    var screenshotReload by remember { mutableIntStateOf(0) }
     var pushLanguage by remember { mutableStateOf("javascript-fetch") }
     var pushCode by remember { mutableStateOf("") }
     var pushCodeError by remember { mutableStateOf("") }
@@ -200,7 +202,7 @@ fun MonitorDetailScreen(
         item {
             TopBar(
                 title = monitor.name,
-                subtitle = monitor.type.replace("-", " "),
+                subtitle = MonitorCatalog.label(monitor.type),
                 onBack = onBack,
                 actions = {
                     IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit") }
@@ -296,11 +298,29 @@ fun MonitorDetailScreen(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (elapsedStyle != "none") {
-                            Text(
-                                last?.let { "Last check ${beatAgo(it.timeMillis)}" } ?: "No heartbeat yet",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            if (last == null) {
+                                Text(
+                                    "No heartbeat yet",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                Text(
+                                    "Last check",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                if (elapsedStyle == "with-line") {
+                                    DotDivider()
+                                } else {
+                                    Spacer(Modifier.width(8.dp))
+                                }
+                                Text(
+                                    beatAgo(last.timeMillis),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = onEvents) { Text("All heartbeats") }
@@ -517,7 +537,7 @@ fun MonitorDetailScreen(
         item {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                 KumaCard {
-                    InfoRow("Type", monitor.type)
+                    InfoRow("Type", MonitorCatalog.label(monitor.type))
                     InfoRow("Parent", monitors.firstOrNull { it.id == monitor.parent }?.name ?: "—")
                     InfoRow("Heartbeat interval", humanInterval(monitor.interval))
                     InfoRow("Retry interval", humanInterval(monitor.json.num("retryInterval", 60)))

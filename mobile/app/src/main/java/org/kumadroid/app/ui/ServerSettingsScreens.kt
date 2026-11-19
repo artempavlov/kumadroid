@@ -124,7 +124,7 @@ fun GeneralSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
             FormSection("Data retention") {
                 Field(
                     "Keep data for (days)", s.optInt("keepDataPeriodDays", 180).toString(),
-                    { update("keepDataPeriodDays", it.toIntOrNull() ?: 0) },
+                    { update("keepDataPeriodDays", it.filter(Char::isDigit).toIntOrNull() ?: 0) },
                     supporting = "0 keeps data forever.",
                     keyboardType = KeyboardType.Number,
                 )
@@ -473,6 +473,8 @@ fun DataSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
     var toast by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var confirmClear by remember { mutableStateOf(false) }
+    val retentionValue = retention.toIntOrNull()
+    val retentionValid = retentionValue != null && retentionValue >= 0
 
     fun loadSize() {
         scope.launch {
@@ -504,11 +506,15 @@ fun DataSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                 Field(
                     "Keep data for (days)", retention,
                     { retention = it.filter(Char::isDigit) },
-                    supporting = "0 keeps all data forever.",
+                    supporting = if (retention.isNotBlank() && !retentionValid) {
+                        "Enter 0 or a positive number of days."
+                    } else {
+                        "0 keeps all data forever."
+                    },
                     keyboardType = KeyboardType.Number,
                 )
                 Button(
-                    enabled = settings != null && !busy,
+                    enabled = settings != null && retentionValid && !busy,
                     onClick = {
                         scope.launch {
                             busy = true
@@ -516,7 +522,7 @@ fun DataSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                             toast = ""
                             try {
                                 val next = JSONObject((settings ?: JSONObject()).toString())
-                                next.put("keepDataPeriodDays", retention.toIntOrNull() ?: 0)
+                                next.put("keepDataPeriodDays", retentionValue ?: 0)
                                 repository.setSettings(next)
                                 settings = next
                                 toast = "Retention updated."

@@ -47,6 +47,8 @@ private val tagColors = listOf(
     "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#64748b",
 )
 
+private val tagColorPattern = Regex("^#[0-9a-fA-F]{6}$")
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TagsScreen(repository: KumaRepository, onBack: () -> Unit) {
@@ -145,18 +147,23 @@ fun TagsScreen(repository: KumaRepository, onBack: () -> Unit) {
                 Button(
                     enabled = name.isNotBlank() && !busy,
                     onClick = {
-                        scope.launch {
-                            busy = true
-                            error = ""
-                            try {
-                                if (tag == null) repository.addTag(name.trim(), color)
-                                else repository.editTag(tag.id, name.trim(), color)
-                                creating = false
-                                editing = null
-                            } catch (e: Exception) {
-                                error = e.message ?: "Could not save tag"
-                            } finally {
-                                busy = false
+                        val value = color.trim()
+                        if (!tagColorPattern.matches(value)) {
+                            error = "Use a color in #RRGGBB format."
+                        } else {
+                            scope.launch {
+                                busy = true
+                                error = ""
+                                try {
+                                    if (tag == null) repository.addTag(name.trim(), value)
+                                    else repository.editTag(tag.id, name.trim(), value)
+                                    creating = false
+                                    editing = null
+                                } catch (e: Exception) {
+                                    error = e.message ?: "Could not save tag"
+                                } finally {
+                                    busy = false
+                                }
                             }
                         }
                     },

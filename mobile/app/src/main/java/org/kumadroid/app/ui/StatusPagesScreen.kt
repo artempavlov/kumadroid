@@ -102,9 +102,9 @@ fun StatusPagesScreen(
                 scope.launch {
                     busy = true
                     try {
-                        repository.addStatusPage(title, slug)
+                        val savedSlug = repository.addStatusPage(title, slug)
                         error = ""
-                        onOpen(slug.lowercase())
+                        onOpen(savedSlug)
                     } catch (e: Exception) {
                         error = e.message ?: "Could not create status page"
                     } finally {

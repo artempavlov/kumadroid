@@ -91,7 +91,8 @@ fun DashboardScreen(
     var refreshing by remember { mutableStateOf(false) }
 
     val roots = monitors.filter { it.parent == null }
-    val children = monitors.filter { it.parent != null }.groupBy { it.parent }
+    val children = monitors.mapNotNull { monitor -> monitor.parent?.let { it to monitor } }
+        .groupBy({ it.first }, { it.second })
     val needle = query.trim().lowercase()
     fun matchesQuery(monitor: Monitor): Boolean = needle.isEmpty() ||
         monitor.name.lowercase().contains(needle) ||
@@ -106,22 +107,26 @@ fun DashboardScreen(
             DashFilter.Paused -> status == -1
         }
     }
-    // A group is visible when at least one of its children matches. If the
-    // group name itself matches the search, keep all of its children visible.
-    val shownChildren = children.mapValues { (groupId, groupChildren) ->
-        val groupMatchesQuery = needle.isEmpty() || monitors.firstOrNull { it.id == groupId }?.let {
-            it.name.lowercase().contains(needle) || it.type.lowercase().contains(needle)
-        } == true
-        groupChildren.filter { (groupMatchesQuery || matchesQuery(it)) && matchesFilter(it) }
-    }
-    val visibleRoots = roots.filter { monitor ->
-        if (monitor.type == "group") {
-            val shown = shownChildren[monitor.id].orEmpty()
-            shown.isNotEmpty() || (filter == DashFilter.All && needle.isEmpty() && children[monitor.id].isNullOrEmpty())
-        } else {
-            matchesQuery(monitor) && matchesFilter(monitor)
+    // Groups may contain other groups. Visibility is resolved recursively so a
+    // matching monitor deep inside nested folders keeps every ancestor visible.
+    val visibleIds = mutableSetOf<Long>()
+    fun visit(monitor: Monitor, ancestorNameMatches: Boolean): Boolean {
+        if (monitor.type != "group") {
+            val visible = (needle.isEmpty() || ancestorNameMatches || matchesQuery(monitor)) && matchesFilter(monitor)
+            if (visible) visibleIds += monitor.id
+            return visible
         }
+        val nameMatches = needle.isNotEmpty() &&
+            (monitor.name.lowercase().contains(needle) || monitor.type.lowercase().contains(needle))
+        val inherited = ancestorNameMatches || nameMatches
+        val childVisible = children[monitor.id].orEmpty().any { visit(it, inherited) }
+        val showEmpty = needle.isEmpty() && filter == DashFilter.All
+        val visible = childVisible || (filter == DashFilter.All && (nameMatches || showEmpty))
+        if (visible) visibleIds += monitor.id
+        return visible
     }
+    roots.forEach { visit(it, false) }
+    val visibleRoots = roots.filter { it.id in visibleIds }
     // Group children are still checks, even though they are rendered inside a folder.
     val checks = monitors.filter { it.type != "group" }
     val counts = dashboardCounts(monitors, heartbeats)
@@ -197,7 +202,8 @@ fun DashboardScreen(
                 if (monitor.type == "group") {
                     GroupCard(
                         monitor = monitor,
-                        children = shownChildren[monitor.id].orEmpty(),
+                        childrenByParent = children,
+                        visibleIds = visibleIds,
                         heartbeats = heartbeats,
                         showBars = barStyle != "none",
                         onOpen = onOpenMonitor,
@@ -255,6 +261,7 @@ private fun MonitorCard(
 ) {
     val status = statusForMonitor(monitor, beats)
     val last = beats.lastOrNull()
+    val lastPing = last?.ping
     KumaCard(onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatusDot(if (status == -1) KumaStatus.PENDING else status, 11)
@@ -308,9 +315,9 @@ private fun MonitorCard(
                 )
             }
             Spacer(Modifier.weight(1f))
-            if (last?.ping != null) {
+            if (lastPing != null) {
                 Text(
-                    "${last.ping!!.toInt()} ms",
+                    "${lastPing.toInt()} ms",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -329,17 +336,28 @@ private fun MonitorCard(
     }
 }
 
+private fun descendantCheckCount(groupId: Long, childrenByParent: Map<Long, List<Monitor>>): Int =
+    childrenByParent[groupId].orEmpty().sumOf { child ->
+        if (child.type == "group") descendantCheckCount(child.id, childrenByParent) else 1
+    }
+
 @Composable
 private fun GroupCard(
     monitor: Monitor,
-    children: List<Monitor>,
+    childrenByParent: Map<Long, List<Monitor>>,
+    visibleIds: Set<Long>,
     heartbeats: Map<Long, List<Beat>>,
     showBars: Boolean,
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
 ) {
+    val children = childrenByParent[monitor.id].orEmpty().filter { it.id in visibleIds }
+    val totalChecks = descendantCheckCount(monitor.id, childrenByParent)
     KumaCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().clickable { onOpen(monitor.id) },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Icon(
                 androidx.compose.material.icons.Icons.Default.Folder,
                 contentDescription = null,
@@ -350,7 +368,7 @@ private fun GroupCard(
             Column(Modifier.weight(1f)) {
                 Text(monitor.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "${children.size} ${if (children.size == 1) "monitor" else "monitors"}",
+                    "$totalChecks ${if (totalChecks == 1) "monitor" else "monitors"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -361,37 +379,90 @@ private fun GroupCard(
         }
         if (children.isEmpty()) {
             Text(
-                "This group is empty.",
+                if (totalChecks == 0) "This group is empty." else "No monitors match the current filter.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
         children.forEach { child ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onOpen(child.id) }
-                    .padding(vertical = 9.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                StatusDot(statusForMonitor(child, heartbeats[child.id]).let { if (it == -1) KumaStatus.PENDING else it }, 9)
-                Spacer(Modifier.width(9.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(child.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        child.displayTarget(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                if (showBars) {
-                    Box(Modifier.width(88.dp)) {
-                        HeartbeatBars(heartbeats[child.id].orEmpty(), count = 18, height = 20)
-                    }
-                }
+            MonitorTreeRow(
+                monitor = child,
+                depth = 0,
+                childrenByParent = childrenByParent,
+                visibleIds = visibleIds,
+                heartbeats = heartbeats,
+                showBars = showBars,
+                onOpen = onOpen,
+            )
+        }
+    }
+}
+
+@Composable
+private fun MonitorTreeRow(
+    monitor: Monitor,
+    depth: Int,
+    childrenByParent: Map<Long, List<Monitor>>,
+    visibleIds: Set<Long>,
+    heartbeats: Map<Long, List<Beat>>,
+    showBars: Boolean,
+    onOpen: (Long) -> Unit,
+) {
+    if (monitor.id !in visibleIds) return
+    val indent = Modifier.padding(start = (depth * 14).dp)
+    if (monitor.type == "group") {
+        val childChecks = descendantCheckCount(monitor.id, childrenByParent)
+        Row(
+            indent
+                .fillMaxWidth()
+                .clickable { onOpen(monitor.id) }
+                .padding(vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Folder,
+                contentDescription = null,
+                tint = KumaColors.Brand,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(9.dp))
+            Column(Modifier.weight(1f)) {
+                Text(monitor.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "$childChecks ${if (childChecks == 1) "monitor" else "monitors"}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        childrenByParent[monitor.id].orEmpty().forEach { child ->
+            MonitorTreeRow(child, depth + 1, childrenByParent, visibleIds, heartbeats, showBars, onOpen)
+        }
+        return
+    }
+    Row(
+        indent
+            .fillMaxWidth()
+            .clickable { onOpen(monitor.id) }
+            .padding(vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatusDot(statusForMonitor(monitor, heartbeats[monitor.id]).let { if (it == -1) KumaStatus.PENDING else it }, 9)
+        Spacer(Modifier.width(9.dp))
+        Column(Modifier.weight(1f)) {
+            Text(monitor.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                monitor.displayTarget(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        if (showBars) {
+            Box(Modifier.width(88.dp)) {
+                HeartbeatBars(heartbeats[monitor.id].orEmpty(), count = 18, height = 20)
             }
         }
     }

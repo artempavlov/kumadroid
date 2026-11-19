@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.History
@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,16 +45,18 @@ fun MonitorEventsScreen(
     var beats by remember { mutableStateOf<List<Beat>>(emptyList()) }
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
-    var period by remember { mutableStateOf(24) }
-    var offset by remember { mutableStateOf(0) }
+    var period by remember { mutableIntStateOf(24) }
+    var offset by remember { mutableIntStateOf(0) }
+    var hasMore by remember { mutableStateOf(false) }
 
     suspend fun load(reset: Boolean) {
         loading = true
         try {
             if (important) {
                 val next = repository.getImportantBeats(monitorId, if (reset) 0 else offset, 100)
-                beats = if (reset) next else (beats + next).distinctBy { "${it.time}|${it.status}|${it.msg}" }
+                beats = if (reset) next else (beats + next).distinctBy { it.json.toString() }
                 offset = if (reset) next.size else offset + next.size
+                hasMore = next.size >= 100
             } else {
                 beats = repository.getMonitorBeats(monitorId, period)
             }
@@ -109,7 +112,10 @@ fun MonitorEventsScreen(
                 )
             }
         }
-        items(beats.sortedByDescending { it.timeMillis }, key = { "${it.time}|${it.status}|${it.msg}" }) { beat ->
+        itemsIndexed(
+            beats.sortedByDescending { it.timeMillis },
+            key = { index, beat -> "${beat.time}|${beat.status}|${beat.msg}|$index" },
+        ) { _, beat ->
             KumaCard(Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
                 BeatRow(beat)
                 if (beat.response.isNotBlank()) {
@@ -129,7 +135,7 @@ fun MonitorEventsScreen(
                 }
             }
         }
-        if (important && beats.size >= 100) {
+        if (important && hasMore) {
             item {
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     Button(

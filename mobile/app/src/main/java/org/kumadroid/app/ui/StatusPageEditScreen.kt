@@ -33,7 +33,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +65,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.kumadroid.app.data.KumaRepository
 import org.kumadroid.app.data.Monitor
+import org.kumadroid.app.data.MonitorCatalog
 import org.kumadroid.app.data.bool
 import org.kumadroid.app.data.long
 import org.kumadroid.app.data.num
@@ -531,7 +532,7 @@ private fun GroupCard(
         }
         group.monitors.forEachIndexed { index, ref ->
             val monitor = monitors.firstOrNull { it.id == ref.id }
-            Divider(Modifier.padding(vertical = 3.dp))
+            HorizontalDivider(Modifier.padding(vertical = 3.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -603,7 +604,7 @@ private fun MonitorPickerDialog(
                             Column(Modifier.weight(1f)) {
                                 Text(monitor.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(
-                                    monitor.type,
+                                    MonitorCatalog.label(monitor.type),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
