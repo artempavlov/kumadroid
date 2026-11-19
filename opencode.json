@@ -1,5 +1,74 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": {
+    "providerID": "litellm",
+    "model": "oc-proxy/opencode/deepseek-v4.1-flash-free"
+  },
+  "agents": {
+    "build": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "plan": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "general": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "explore": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "web-search": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "compaction": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "title": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "summary": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    },
+    "quick": {
+      "model": {
+        "providerID": "litellm",
+        "model": "oc-proxy/opencode/deepseek-v4.1-flash-free",
+        "variant": "max"
+      }
+    }
+  },
   "mcp": {
     "servers": {
       "mobile-mcp": {
