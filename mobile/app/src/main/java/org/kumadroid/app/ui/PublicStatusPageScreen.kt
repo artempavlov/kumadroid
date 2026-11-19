@@ -129,7 +129,11 @@ fun PublicStatusPageScreen(
         }
         fun beatsFor(id: Long): List<Beat> {
             monitorBeats[id]?.let { return it }
-            val array = hb.optJSONArray(id.toString()) ?: return emptyList()
+            // Uptime Kuma wraps the per-monitor arrays in heartbeatList.
+            // Keep the top-level fallback for older server versions.
+            val array = hb.optJSONObject("heartbeatList")?.optJSONArray(id.toString())
+                ?: hb.optJSONArray(id.toString())
+                ?: return emptyList()
             val list = (0 until array.length()).mapNotNull { array.optJSONObject(it)?.let(::Beat) }
             monitorBeats[id] = list
             return list

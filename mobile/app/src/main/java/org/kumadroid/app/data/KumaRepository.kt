@@ -122,12 +122,48 @@ class KumaRepository(private val context: Context) {
             prefs.edit().remove("token").remove("username").apply()
             username.value = ""
             loggedIn.value = false
+            clearServerState()
         }
         val tlsChanged = allowInsecureTls != insecure
         serverUrl = normalized
         allowInsecureTls = insecure
         prefs.edit().putString("baseUrl", serverUrl).putBoolean("allowInsecure", insecure).apply()
         if (tlsChanged) resetHttpClient()
+    }
+
+    /**
+     * Drops every value that belongs to the previous server. Keeping any of
+     * these around makes a newly configured server show stale monitors,
+     * heartbeats, or settings from the old host.
+     */
+    private fun clearServerState() {
+        serverInfo.value = ServerInfo()
+        needSetup.value = false
+        monitors.value = emptyList()
+        tags.value = emptyList()
+        notifications.value = emptyList()
+        maintenances.value = emptyList()
+        statusPages.value = emptyList()
+        apiKeys.value = emptyList()
+        dockerHosts.value = emptyList()
+        proxies.value = emptyList()
+        remoteBrowsers.value = emptyList()
+        monitorTypes.value = JSONObject()
+        settings.value = null
+        cloudflaredInstalled.value = false
+        cloudflaredRunning.value = false
+        cloudflaredMessage.value = ""
+        cloudflaredError.value = ""
+        cloudflaredToken.value = ""
+        heartbeats.value = emptyMap()
+        importantBeats.value = emptyMap()
+        avgPing.value = emptyMap()
+        uptime.value = emptyMap()
+        certInfo.value = emptyMap()
+        domainInfo.value = emptyMap()
+        status.value = ConnectionStatus.Idle
+        statusMessage.value = ""
+        busy.value = false
     }
 
     private fun buildHttpClient(): OkHttpClient = OkHttpClient.Builder()
@@ -468,7 +504,7 @@ class KumaRepository(private val context: Context) {
         if (!totp.isNullOrBlank()) payload.put("token", totp)
         val ack = socket.requestObject("login", payload)
         if (ack.bool("tokenRequired")) return false
-        if (!ack.bool("ok")) throw KumaException(ack.str("msg", "Login failed"))
+        if (!ack.bool("ok")) throw KumaException(friendlyServerMessage(ack.str("msg"), "Login failed"))
         token = ack.str("token")
         prefs.edit().putString("token", token).putString("username", user).apply()
         username.value = user
@@ -483,7 +519,7 @@ class KumaRepository(private val context: Context) {
 
     suspend fun setup(user: String, password: String) {
         val ack = socket.requestObject("setup", user, password)
-        if (!ack.bool("ok")) throw KumaException(ack.str("msg", "Setup failed"))
+        if (!ack.bool("ok")) throw KumaException(friendlyServerMessage(ack.str("msg"), "Setup failed"))
         needSetup.value = false
         login(user, password)
     }
@@ -977,7 +1013,22 @@ class KumaRepository(private val context: Context) {
     }
 
     private fun ensureOk(ack: JSONObject) {
-        if (!ack.bool("ok", true)) throw KumaException(ack.str("msg", "Request failed"))
+        if (!ack.bool("ok", true)) {
+            throw KumaException(friendlyServerMessage(ack.str("msg"), "Request failed"))
+        }
+    }
+
+    /**
+     * Uptime Kuma returns i18n keys for a few authentication failures instead
+     * of readable text. Translate the known keys and leave every other server
+     * message untouched.
+     */
+    internal fun friendlyServerMessage(message: String, fallback: String): String = when (message) {
+        "authIncorrectCreds" -> "Incorrect username or password."
+        "authInvalidToken" -> "Invalid two-factor authentication code."
+        "authUserInactiveOrDeleted" -> "This account is inactive or has been deleted."
+        "passwordTooWeak" -> "The password is too weak. Use at least 6 characters."
+        else -> message.ifBlank { fallback }
     }
 
     private fun normalizeUrl(raw: String): String {

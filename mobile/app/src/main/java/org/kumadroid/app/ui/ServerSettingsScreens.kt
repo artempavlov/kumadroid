@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -297,7 +298,7 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                     Spacer(Modifier.size(8.dp))
                     Text(
                         when (twoFa) {
-                            null -> "Checking status…"
+                            null -> if (error.isNotBlank()) "2FA status unavailable" else "Checking status…"
                             true -> "2FA is enabled"
                             false -> "2FA is not enabled"
                         },
@@ -719,6 +720,9 @@ private fun QrCode(content: String, modifier: Modifier = Modifier) {
                 setPixels(pixels, 0, matrix.width, 0, 0, matrix.width, matrix.height)
             }
         }.getOrNull()
+    }
+    DisposableEffect(bitmap) {
+        onDispose { bitmap?.recycle() }
     }
     bitmap?.let {
         Image(it.asImageBitmap(), contentDescription = "Two-factor authentication QR code", modifier = modifier)

@@ -1,6 +1,8 @@
 package org.kumadroid.app.ui
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.saveable.Saver
+import org.json.JSONArray
 import org.json.JSONObject
 
 sealed class Screen {
@@ -73,6 +75,104 @@ class Navigator(start: Screen = Screen.Dashboard) {
         stack.add(Screen.Dashboard)
     }
 }
+
+/** Keeps the navigation stack across configuration changes and process restarts. */
+val NavigatorSaver: Saver<Navigator, String> = Saver(
+    save = { navigator ->
+        val array = JSONArray()
+        navigator.stack.forEach { array.put(it.toJson()) }
+        array.toString()
+    },
+    restore = { encoded ->
+        runCatching {
+            val array = JSONArray(encoded)
+            val navigator = Navigator()
+            navigator.stack.clear()
+            for (index in 0 until array.length()) {
+                val screen = array.optJSONObject(index)?.toScreen()
+                if (screen != null) navigator.stack.add(screen)
+            }
+            if (navigator.stack.isEmpty()) navigator.stack.add(Screen.Dashboard)
+            navigator
+        }.getOrNull()
+    },
+)
+
+private fun Screen.toJson(): JSONObject = JSONObject().apply {
+    when (this@toJson) {
+        Screen.Dashboard -> put("kind", "dashboard")
+        Screen.StatusPages -> put("kind", "statusPages")
+        Screen.Maintenances -> put("kind", "maintenances")
+        Screen.Settings -> put("kind", "settings")
+        Screen.Tags -> put("kind", "tags")
+        Screen.Notifications -> put("kind", "notifications")
+        Screen.ApiKeys -> put("kind", "apiKeys")
+        Screen.Appearance -> put("kind", "appearance")
+        Screen.DockerHosts -> put("kind", "dockerHosts")
+        Screen.Proxies -> put("kind", "proxies")
+        Screen.ReverseProxy -> put("kind", "reverseProxy")
+        Screen.RemoteBrowsers -> put("kind", "remoteBrowsers")
+        Screen.GeneralSettings -> put("kind", "generalSettings")
+        Screen.SecuritySettings -> put("kind", "securitySettings")
+        Screen.DataSettings -> put("kind", "dataSettings")
+        Screen.About -> put("kind", "about")
+        is Screen.MonitorDetail -> put("kind", "monitorDetail").put("id", id)
+        is Screen.MonitorEdit -> put("kind", "monitorEdit").apply {
+            id?.let { put("id", it) }
+            parent?.let { put("parent", it) }
+            cloneFrom?.let { put("cloneFrom", it) }
+        }
+        is Screen.MonitorEvents -> put("kind", "monitorEvents").put("id", id).put("important", important)
+        is Screen.NotificationEdit -> put("kind", "notificationEdit").apply {
+            draft?.let { put("draft", it) }
+        }
+        is Screen.StatusPageEdit -> put("kind", "statusPageEdit").put("slug", slug)
+        is Screen.PublicStatusPage -> put("kind", "publicStatusPage").put("slug", slug)
+        is Screen.Incidents -> put("kind", "incidents").put("slug", slug)
+        is Screen.MaintenanceEdit -> put("kind", "maintenanceEdit").apply {
+            id?.let { put("id", it) }
+            cloneFrom?.let { put("cloneFrom", it) }
+        }
+    }
+}
+
+private fun JSONObject.toScreen(): Screen? = when (optString("kind")) {
+    "dashboard" -> Screen.Dashboard
+    "statusPages" -> Screen.StatusPages
+    "maintenances" -> Screen.Maintenances
+    "settings" -> Screen.Settings
+    "tags" -> Screen.Tags
+    "notifications" -> Screen.Notifications
+    "apiKeys" -> Screen.ApiKeys
+    "appearance" -> Screen.Appearance
+    "dockerHosts" -> Screen.DockerHosts
+    "proxies" -> Screen.Proxies
+    "reverseProxy" -> Screen.ReverseProxy
+    "remoteBrowsers" -> Screen.RemoteBrowsers
+    "generalSettings" -> Screen.GeneralSettings
+    "securitySettings" -> Screen.SecuritySettings
+    "dataSettings" -> Screen.DataSettings
+    "about" -> Screen.About
+    "monitorDetail" -> Screen.MonitorDetail(optLong("id"))
+    "monitorEdit" -> Screen.MonitorEdit(
+        id = optionalLong("id"),
+        parent = optionalLong("parent"),
+        cloneFrom = optionalLong("cloneFrom"),
+    )
+    "monitorEvents" -> Screen.MonitorEvents(optLong("id"), optBoolean("important"))
+    "notificationEdit" -> Screen.NotificationEdit(if (has("draft")) optString("draft") else null)
+    "statusPageEdit" -> Screen.StatusPageEdit(optString("slug"))
+    "publicStatusPage" -> Screen.PublicStatusPage(optString("slug"))
+    "incidents" -> Screen.Incidents(optString("slug"))
+    "maintenanceEdit" -> Screen.MaintenanceEdit(
+        id = optionalLong("id"),
+        cloneFrom = optionalLong("cloneFrom"),
+    )
+    else -> null
+}
+
+private fun JSONObject.optionalLong(key: String): Long? =
+    if (has(key) && !isNull(key)) optLong(key) else null
 
 fun notificationDraft(json: JSONObject?): String? = json?.toString()
 

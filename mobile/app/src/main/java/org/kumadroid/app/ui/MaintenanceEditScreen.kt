@@ -219,7 +219,11 @@ fun MaintenanceEditScreen(
             val minutes = parts[1].toIntOrNull() ?: return false
             return hours in 0..23 && minutes in 0..59
         }
-        if (strategy != "manual") {
+        // Only a single window needs an effective date range. Recurring and
+        // cron maintenance runs indefinitely unless the user optionally sets
+        // one, so blank dates are valid there.
+        val hasDateRange = dateStart.isNotBlank() || dateEnd.isNotBlank()
+        if (strategy == "single" || (strategy != "manual" && hasDateRange)) {
             val start = runCatching { LocalDateTime.parse(dateStart, dateTimeFormat) }.getOrNull()
             val end = runCatching { LocalDateTime.parse(dateEnd, dateTimeFormat) }.getOrNull()
             if (start == null || end == null) {
@@ -268,10 +272,16 @@ fun MaintenanceEditScreen(
         saving = true
         scope.launch {
             try {
-                val id = if (maintenanceId != null && maintenanceId > 0) maintenanceId else {
-                    repository.addMaintenance(build())
+                // Reuse the ID returned by a successful add. If assigning
+                // monitors or pages fails, retrying must update that draft
+                // instead of creating a second maintenance window.
+                val existingId = maintenanceId?.takeIf { it > 0 } ?: savedId
+                val id = if (existingId != null) {
+                    repository.editMaintenance(build().put("id", existingId))
+                    existingId
+                } else {
+                    repository.addMaintenance(build()).also { savedId = it }
                 }
-                if (maintenanceId != null && maintenanceId > 0) repository.editMaintenance(build())
                 repository.setMaintenanceMonitors(id, selectedMonitors.toList())
                 repository.setMaintenanceStatusPages(
                     id,

@@ -137,7 +137,15 @@ class KumaSocket(private val scope: CoroutineScope) {
         args.forEach { payload.put(it ?: JSONObject.NULL) }
         val frame = "42$id$payload"
         sendMutex.withLock {
-            if (!ws.send(frame)) {
+            // closeInternal() may have run between the initial check and the
+            // registration above. Re-check under the send lock so a request can
+            // never be registered after its pending entry was already cleared.
+            val current = webSocket
+            if (current !== ws || !socketConnected) {
+                pending.remove(id)
+                throw KumaException("Not connected to the server")
+            }
+            if (!current.send(frame)) {
                 pending.remove(id)
                 throw KumaException("Connection lost")
             }
@@ -161,6 +169,7 @@ class KumaSocket(private val scope: CoroutineScope) {
         val payload = JSONArray().put(event)
         args.forEach { payload.put(it ?: JSONObject.NULL) }
         sendMutex.withLock {
+            if (webSocket !== ws || !socketConnected) throw KumaException("Not connected to the server")
             if (!ws.send("42$payload")) throw KumaException("Connection lost")
         }
     }

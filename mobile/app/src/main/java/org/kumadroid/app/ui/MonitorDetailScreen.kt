@@ -447,11 +447,10 @@ fun MonitorDetailScreen(
                         Text("Response time", style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.weight(1f))
                         Text(
-                            when {
-                                chart.isEmpty() -> ""
-                                chartHours % 24 == 0 && chartHours >= 168 -> "${chartHours / 24}d"
-                                chartHours >= 24 -> "${chartHours / 24}d"
-                                else -> "${chartHours}h"
+                            if (chart.isEmpty()) {
+                                ""
+                            } else {
+                                chartPeriods.firstOrNull { it.hours == chartHours }?.label ?: "${chartHours}h"
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -60,6 +60,7 @@ import org.kumadroid.app.ui.MonitorDetailScreen
 import org.kumadroid.app.ui.MonitorEditScreen
 import org.kumadroid.app.ui.MonitorEventsScreen
 import org.kumadroid.app.ui.Navigator
+import org.kumadroid.app.ui.NavigatorSaver
 import org.kumadroid.app.ui.NotificationEditScreen
 import org.kumadroid.app.ui.NotificationsScreen
 import org.kumadroid.app.ui.PublicStatusPageScreen
@@ -104,7 +105,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun KumaApp(repository: KumaRepository) {
     val snackbar = remember { SnackbarHostState() }
-    val navigator = remember { Navigator() }
+    val navigator = rememberSaveable(saver = NavigatorSaver) { Navigator() }
 
     val status by repository.status.collectAsStateWithLifecycle()
     val statusMessage by repository.statusMessage.collectAsStateWithLifecycle()
@@ -113,8 +114,10 @@ private fun KumaApp(repository: KumaRepository) {
     var editingServer by rememberSaveable { mutableStateOf(repository.serverUrl.isBlank()) }
 
     LaunchedEffect(repository) {
+        // Start collecting before bootstrap: an invalid URL reports its error
+        // synchronously, and that message must not be lost.
+        launch { repository.messages.collect { snackbar.showSnackbar(it) } }
         repository.bootstrap()
-        repository.messages.collect { snackbar.showSnackbar(it) }
     }
 
     if (loggedIn) {
@@ -133,7 +136,9 @@ private fun KumaApp(repository: KumaRepository) {
                     onConnected = { editingServer = false },
                 )
                 needSetup -> SetupScreen(repository)
-                status == ConnectionStatus.Connecting || (status == ConnectionStatus.Idle && repository.serverUrl.isNotBlank()) -> ConnectingScreen(
+                status == ConnectionStatus.Connecting ||
+                    status == ConnectionStatus.Error ||
+                    (status == ConnectionStatus.Idle && repository.serverUrl.isNotBlank()) -> ConnectingScreen(
                     repository = repository,
                     message = statusMessage,
                     onEditServer = {
@@ -184,7 +189,7 @@ private fun MainShell(repository: KumaRepository, navigator: Navigator, snackbar
                 ) {
                     CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp, color = KumaColors.Pending)
                     Text(
-                        "Reconnecting to server…",
+                        if (status == ConnectionStatus.Connecting) "Connecting to server…" else "Reconnecting to server…",
                         style = MaterialTheme.typography.labelSmall,
                         color = KumaColors.Pending,
                     )

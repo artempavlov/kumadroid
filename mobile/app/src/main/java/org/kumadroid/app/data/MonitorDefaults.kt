@@ -243,10 +243,7 @@ fun JSONObject.numOr(key: String, fallback: Int): Int {
     return optInt(key, fallback)
 }
 
-fun JSONObject.boolOr(key: String, fallback: Boolean = false): Boolean {
-    if (isNull(key)) return fallback
-    return optBoolean(key, fallback)
-}
+fun JSONObject.boolOr(key: String, fallback: Boolean = false): Boolean = bool(key, fallback)
 
 fun JSONArray.stringList(): List<String> {
     val result = mutableListOf<String>()

@@ -229,6 +229,9 @@ fun DashboardScreen(
                             scope.launch {
                                 try {
                                     if (monitor.active) repository.pauseMonitor(monitor.id) else repository.resumeMonitor(monitor.id)
+                                    // The server does not push updateMonitorIntoList for
+                                    // pause/resume, so reload the list to refresh the card.
+                                    repository.refreshAll()
                                 } catch (e: Exception) {
                                     error = e.message ?: "Action failed"
                                 }
