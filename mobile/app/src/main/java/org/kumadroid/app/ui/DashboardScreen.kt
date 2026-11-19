@@ -58,6 +58,18 @@ private enum class DashFilter(val label: String) {
     All("All"), Up("Up"), Down("Down"), Paused("Paused")
 }
 
+internal data class DashboardCounts(val up: Int, val down: Int, val paused: Int)
+
+/** Counts every check, including monitors nested inside group folders. */
+internal fun dashboardCounts(monitors: List<Monitor>, heartbeats: Map<Long, List<Beat>>): DashboardCounts {
+    val checks = monitors.filter { it.type != "group" }
+    return DashboardCounts(
+        up = checks.count { statusForMonitor(it, heartbeats[it.id]) == KumaStatus.UP },
+        down = checks.count { statusForMonitor(it, heartbeats[it.id]) == KumaStatus.DOWN },
+        paused = checks.count { statusForMonitor(it, heartbeats[it.id]) == -1 },
+    )
+}
+
 @Composable
 fun DashboardScreen(
     repository: KumaRepository,
@@ -80,32 +92,46 @@ fun DashboardScreen(
 
     val roots = monitors.filter { it.parent == null }
     val children = monitors.filter { it.parent != null }.groupBy { it.parent }
-    val visibleRoots = roots.filter { monitor ->
-        val needle = query.trim().lowercase()
-        val matchesQuery = needle.isEmpty() || monitor.name.lowercase().contains(needle) ||
-            monitor.displayTarget().lowercase().contains(needle) ||
-            monitor.type.lowercase().contains(needle) ||
-            children[monitor.id].orEmpty().any { it.name.lowercase().contains(needle) }
+    val needle = query.trim().lowercase()
+    fun matchesQuery(monitor: Monitor): Boolean = needle.isEmpty() ||
+        monitor.name.lowercase().contains(needle) ||
+        monitor.displayTarget().lowercase().contains(needle) ||
+        monitor.type.lowercase().contains(needle)
+    fun matchesFilter(monitor: Monitor): Boolean {
         val status = statusForMonitor(monitor, heartbeats[monitor.id])
-        val matchesFilter = when (filter) {
+        return when (filter) {
             DashFilter.All -> true
             DashFilter.Up -> status == KumaStatus.UP
             DashFilter.Down -> status == KumaStatus.DOWN || status == KumaStatus.PENDING
             DashFilter.Paused -> status == -1
         }
-        matchesQuery && matchesFilter
     }
-    val flat = monitors.filter { it.type != "group" && it.parent == null }
-    val upCount = flat.count { statusForMonitor(it, heartbeats[it.id]) == KumaStatus.UP }
-    val downCount = flat.count { statusForMonitor(it, heartbeats[it.id]) == KumaStatus.DOWN }
-    val pausedCount = flat.count { statusForMonitor(it, heartbeats[it.id]) == -1 }
+    // A group is visible when at least one of its children matches. If the
+    // group name itself matches the search, keep all of its children visible.
+    val shownChildren = children.mapValues { (groupId, groupChildren) ->
+        val groupMatchesQuery = needle.isEmpty() || monitors.firstOrNull { it.id == groupId }?.let {
+            it.name.lowercase().contains(needle) || it.type.lowercase().contains(needle)
+        } == true
+        groupChildren.filter { (groupMatchesQuery || matchesQuery(it)) && matchesFilter(it) }
+    }
+    val visibleRoots = roots.filter { monitor ->
+        if (monitor.type == "group") {
+            val shown = shownChildren[monitor.id].orEmpty()
+            shown.isNotEmpty() || (filter == DashFilter.All && needle.isEmpty() && children[monitor.id].isNullOrEmpty())
+        } else {
+            matchesQuery(monitor) && matchesFilter(monitor)
+        }
+    }
+    // Group children are still checks, even though they are rendered inside a folder.
+    val checks = monitors.filter { it.type != "group" }
+    val counts = dashboardCounts(monitors, heartbeats)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 28.dp),
     ) {
         item {
-            PageTitle("Monitors", "${monitors.count { it.type != "group" }} checks · ${serverInfo.version.ifBlank { "Uptime Kuma" }}") {
+            PageTitle("Monitors", "${checks.size} ${if (checks.size == 1) "check" else "checks"} · ${serverInfo.version.ifBlank { "Uptime Kuma" }}") {
                 IconButton(onClick = {
                     refreshing = true
                     scope.launch {
@@ -130,9 +156,9 @@ fun DashboardScreen(
                 Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SummaryPill("Up", upCount, KumaColors.Up, Modifier.weight(1f))
-                SummaryPill("Down", downCount, KumaColors.Down, Modifier.weight(1f))
-                SummaryPill("Paused", pausedCount, MaterialTheme.colorScheme.onSurfaceVariant, Modifier.weight(1f))
+                SummaryPill("Up", counts.up, KumaColors.Up, Modifier.weight(1f))
+                SummaryPill("Down", counts.down, KumaColors.Down, Modifier.weight(1f))
+                SummaryPill("Paused", counts.paused, MaterialTheme.colorScheme.onSurfaceVariant, Modifier.weight(1f))
             }
         }
         item {
@@ -171,7 +197,7 @@ fun DashboardScreen(
                 if (monitor.type == "group") {
                     GroupCard(
                         monitor = monitor,
-                        children = children[monitor.id].orEmpty(),
+                        children = shownChildren[monitor.id].orEmpty(),
                         heartbeats = heartbeats,
                         showBars = barStyle != "none",
                         onOpen = onOpenMonitor,
@@ -324,7 +350,7 @@ private fun GroupCard(
             Column(Modifier.weight(1f)) {
                 Text(monitor.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "${children.size} monitors",
+                    "${children.size} ${if (children.size == 1) "monitor" else "monitors"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
