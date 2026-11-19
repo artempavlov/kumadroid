@@ -128,9 +128,21 @@ fun MonitorDetailScreen(
         pushCode = ""
         pushCodeError = ""
         try {
-            pushCode = repository.getPushExample(pushLanguage)
-                .replace("60", monitor?.interval?.toString() ?: "60")
+            val interval = (monitor?.interval ?: 60).toString()
+            // Substitute the placeholder URL first, then the hard-coded interval
+            // literal only on lines that define an interval. A plain replace("60")
+            // would also corrupt ports and tokens.
+            val example = repository.getPushExample(pushLanguage)
                 .replace("https://example.com/api/push/key?status=up&msg=OK&ping=", pushUrl)
+            pushCode = example.lines().joinToString("\n") { line ->
+                when {
+                    line.contains("interval", ignoreCase = true) ->
+                        line.replace(Regex("""\b60\b"""), interval)
+                    line.trimStart().startsWith("docker run") ->
+                        line.replace(Regex("""(\s)60\s*$"""), "$1$interval")
+                    else -> line
+                }
+            }
         } catch (e: Exception) {
             pushCodeError = e.message ?: "Could not load example"
         }
@@ -511,14 +523,18 @@ fun MonitorDetailScreen(
             item {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     FormSection("TLS certificate") {
-                        val subject = cert.optJSONObject("subject")?.str("CN").orEmpty()
-                        val issuer = cert.optJSONObject("issuer")?.str("CN").orEmpty()
+                        // The server emits { valid, certInfo: { subject, issuer, ... } };
+                        // older versions sent the certificate fields at the root.
+                        val details = cert.optJSONObject("certInfo") ?: cert
+                        val subject = details.optJSONObject("subject")?.str("CN").orEmpty()
+                        val issuer = details.optJSONObject("issuer")?.str("CN").orEmpty()
                         InfoRow("Subject", subject)
                         InfoRow("Issuer", issuer)
-                        InfoRow("Valid from", cert.str("valid_from"))
-                        InfoRow("Valid to", cert.str("valid_to"))
-                        val days = cert.opt("daysRemaining")
+                        InfoRow("Valid from", details.str("valid_from"))
+                        InfoRow("Valid to", details.str("valid_to"))
+                        val days = details.opt("daysRemaining")
                         if (days != null) InfoRow("Days remaining", days.toString())
+                        if (cert.has("valid") && !cert.bool("valid", true)) InfoRow("Status", "Invalid certificate")
                     }
                 }
             }

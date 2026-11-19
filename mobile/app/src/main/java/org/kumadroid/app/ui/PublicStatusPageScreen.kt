@@ -144,18 +144,21 @@ fun PublicStatusPageScreen(
                 allStatuses += beatsFor(monitor.long("id")).lastOrNull()?.status ?: -1
             }
         }
-        // Match Uptime Kuma: maintenance on any monitor takes precedence.
+        // Match Uptime Kuma: only monitors that already have a heartbeat take
+        // part in the overall status. Missing heartbeats must not turn the page
+        // green before the first check has completed.
+        val knownStatuses = allStatuses.filter { it >= 0 }
         val overall = when {
-            allStatuses.isEmpty() -> -1
-            allStatuses.any { it == KumaStatus.MAINTENANCE } -> KumaStatus.MAINTENANCE
-            allStatuses.any { it == KumaStatus.DOWN || it == KumaStatus.PENDING } -> KumaStatus.DOWN
+            knownStatuses.isEmpty() -> -1
+            knownStatuses.any { it == KumaStatus.MAINTENANCE } -> KumaStatus.MAINTENANCE
+            knownStatuses.any { it == KumaStatus.DOWN || it == KumaStatus.PENDING } -> KumaStatus.DOWN
             else -> KumaStatus.UP
         }
         val overallLabel = when (overall) {
             KumaStatus.UP -> "All systems operational"
             KumaStatus.DOWN -> "Some systems are experiencing issues"
             KumaStatus.MAINTENANCE -> "Under maintenance"
-            else -> "No services yet"
+            else -> "No status data yet"
         }
 
         LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 28.dp)) {

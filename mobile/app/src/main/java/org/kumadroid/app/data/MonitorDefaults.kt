@@ -80,14 +80,24 @@ object MonitorCatalog {
 
     fun needsDescriptionOnly(type: String) = type in setOf("manual", "group")
 
+    fun defaultPort(type: String, subtype: String? = null): Int = when (type) {
+        "dns" -> 53
+        "radius" -> 1812
+        "snmp" -> 161
+        "ntp" -> 123
+        "sftp" -> 22
+        "globalping" -> if (subtype == "ping") 80 else 0
+        else -> 0
+    }
+
     fun defaultFor(type: String): JSONObject = JSONObject().apply {
         put("type", type)
         put("name", "")
         put("description", "")
         put("parent", JSONObject.NULL)
-        put("url", "http://")
+        put("url", if (type == "websocket-upgrade") "wss://" else "https://")
         put("hostname", "")
-        put("port", 0)
+        put("port", defaultPort(type, "http"))
         put("method", "GET")
         put("body", "")
         put("headers", "")
@@ -165,7 +175,7 @@ object MonitorCatalog {
         put("sshAuthMethod", "password")
         put("sftpPath", "")
         put("smtpSecurity", "starttls")
-        put("snmpVersion", "1")
+        put("snmpVersion", if (type == "snmp") "2c" else "1")
         put("snmpOid", "")
         put("snmpV3Username", "")
         put("ntpStratumThreshold", 5)
@@ -175,12 +185,18 @@ object MonitorCatalog {
         put("ping_count", 5)
         put("ping_numeric", false)
         put("ping_per_request_timeout", 0)
-        put("interval", 60)
+        // NTP servers may rate-limit frequent queries, so the web UI uses 5 minutes.
+        put("interval", if (type == "ntp") 300 else 60)
         put("retryInterval", 60)
         put("resendInterval", 0)
         put("maxretries", 0)
         put("retryOnlyOnStatusCodeFailure", false)
-        put("timeout", 48)
+        put("timeout", when (type) {
+            "ping" -> 10
+            "snmp" -> 5
+            "kafka-producer" -> 1
+            else -> 48
+        })
         put("active", true)
         put("manual_status", 1)
         put("ignoreTls", false)
@@ -188,7 +204,10 @@ object MonitorCatalog {
         put("expiryNotification", false)
         put("domainExpiryNotification", true)
         put("maxredirects", 10)
-        put("accepted_statuscodes", JSONArray().put("200-299"))
+        put(
+            "accepted_statuscodes",
+            if (type == "websocket-upgrade") JSONArray().put("1000") else JSONArray().put("200-299"),
+        )
         put("saveResponse", false)
         put("saveErrorResponse", true)
         put("responseMaxLength", 1024)

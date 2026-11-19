@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -137,19 +138,26 @@ fun DashboardScreen(
     ) {
         item {
             PageTitle("Monitors", "${checks.size} ${if (checks.size == 1) "check" else "checks"} · ${serverInfo.version.ifBlank { "Uptime Kuma" }}") {
-                IconButton(onClick = {
-                    refreshing = true
-                    scope.launch {
-                        try {
-                            repository.refreshAll()
-                        } catch (e: Exception) {
-                            error = e.message ?: "Refresh failed"
-                        } finally {
-                            refreshing = false
+                IconButton(
+                    onClick = {
+                        refreshing = true
+                        scope.launch {
+                            try {
+                                repository.refreshAll()
+                            } catch (e: Exception) {
+                                error = e.message ?: "Refresh failed"
+                            } finally {
+                                refreshing = false
+                            }
                         }
+                    },
+                    enabled = !refreshing,
+                ) {
+                    if (refreshing) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = onAddMonitor) {
                     Icon(Icons.Default.Add, contentDescription = "Add monitor", tint = KumaColors.Brand)

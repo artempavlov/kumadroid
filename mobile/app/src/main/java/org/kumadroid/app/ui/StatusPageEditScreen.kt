@@ -108,6 +108,7 @@ fun StatusPageEditScreen(
     var analyticsScriptUrl by remember { mutableStateOf("") }
     var domains by remember { mutableStateOf("") }
     var groups by remember { mutableStateOf<List<PageGroup>>(emptyList()) }
+    var groupsLoaded by remember { mutableStateOf(false) }
 
     var showAddGroup by remember { mutableStateOf(false) }
     var addMonitorsTo by remember { mutableStateOf<Int?>(null) }
@@ -161,8 +162,8 @@ fun StatusPageEditScreen(
             .joinToString("\n")
     }
 
-    fun applyGroups(array: JSONArray?) {
-        if (array == null) return
+    fun applyGroups(array: JSONArray?): Boolean {
+        if (array == null) return false
         groups = (0 until array.length()).mapNotNull { index ->
             val obj = array.optJSONObject(index) ?: return@mapNotNull null
             val monitorArray = obj.optJSONArray("monitorList") ?: JSONArray()
@@ -176,6 +177,7 @@ fun StatusPageEditScreen(
             }
             PageGroup(obj.long("id").takeIf { it > 0 }, obj.str("name"), refs)
         }
+        return true
     }
 
     LaunchedEffect(slug) {
@@ -184,7 +186,11 @@ fun StatusPageEditScreen(
             val data = runCatching { repository.fetchStatusPageData(slug) }.getOrNull()
             val config = data?.optJSONObject("config") ?: repository.getStatusPageConfig(slug)
             applyConfig(config)
-            applyGroups(data?.optJSONArray("publicGroupList"))
+            groupsLoaded = if (data == null) {
+                false
+            } else {
+                applyGroups(data.optJSONArray("publicGroupList"))
+            }
             error = ""
         } catch (e: Exception) {
             error = e.message ?: "Could not load status page"
@@ -197,6 +203,10 @@ fun StatusPageEditScreen(
         if (saving) return
         if (title.isBlank() || slugValue.isBlank()) {
             error = "Title and slug are required"
+            return
+        }
+        if (!groupsLoaded) {
+            error = "Monitor groups could not be loaded. Reopen this page before saving."
             return
         }
         scope.launch {
@@ -241,7 +251,7 @@ fun StatusPageEditScreen(
                 }
                 val saved = repository.saveStatusPage(slug, config, logo.trim(), groupArray)
                 applyGroups(saved)
-                repository.refreshStatusPages()
+                runCatching { repository.refreshStatusPages() }
                 info = "Status page saved"
                 onBack()
             } catch (e: Exception) {
@@ -266,7 +276,7 @@ fun StatusPageEditScreen(
             TopBar("Edit status page", subtitle = "/$slug", onBack = onBack) {
                 IconButton(onClick = onPreview) { Icon(Icons.Default.Visibility, contentDescription = "Preview") }
                 IconButton(onClick = onIncidents) { Icon(Icons.Default.Report, contentDescription = "Incidents") }
-                TextButton(onClick = { save() }, enabled = !saving) {
+                TextButton(onClick = { save() }, enabled = !saving && groupsLoaded) {
                     Text(if (saving) "Saving…" else "Save", color = KumaColors.Brand, fontWeight = FontWeight.Bold)
                 }
             }
@@ -381,7 +391,7 @@ fun StatusPageEditScreen(
             }
         }
         groups.forEachIndexed { groupIndex, group ->
-            item(key = "group-${group.id ?: groupIndex}") {
+            item(key = "group-$groupIndex") {
                 GroupCard(
                     group = group,
                     monitors = monitors,
@@ -424,7 +434,7 @@ fun StatusPageEditScreen(
         item {
             Button(
                 onClick = { save() },
-                enabled = !saving,
+                enabled = !saving && groupsLoaded,
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 shape = RoundedCornerShape(50),
             ) { Text(if (saving) "Saving…" else "Save status page") }

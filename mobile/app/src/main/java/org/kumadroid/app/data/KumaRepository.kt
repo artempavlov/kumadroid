@@ -106,8 +106,17 @@ class KumaRepository(private val context: Context) {
     }
 
     fun configureServer(url: String, insecure: Boolean) {
+        val normalized = normalizeUrl(url)
+        // A token belongs to one server. Never send the stored session to a
+        // different host after the user edits the server address.
+        if (serverUrl.isNotBlank() && normalized != serverUrl) {
+            token = null
+            prefs.edit().remove("token").remove("username").apply()
+            username.value = ""
+            loggedIn.value = false
+        }
         val tlsChanged = allowInsecureTls != insecure
-        serverUrl = normalizeUrl(url)
+        serverUrl = normalized
         allowInsecureTls = insecure
         prefs.edit().putString("baseUrl", serverUrl).putBoolean("allowInsecure", insecure).apply()
         if (tlsChanged) resetHttpClient()
@@ -182,6 +191,8 @@ class KumaRepository(private val context: Context) {
         if (manualDisconnect) return
         status.value = ConnectionStatus.Error
         statusMessage.value = reason
+        // A malformed URL cannot be fixed by retrying; the user has to edit it.
+        if (reason == "Invalid server URL") return
         if (serverUrl.isNotBlank()) {
             reconnectJob?.cancel()
             val delayMs = (2_000L shl reconnectAttempts.coerceIn(0, 4)).coerceAtMost(30_000L)
@@ -310,7 +321,10 @@ class KumaRepository(private val context: Context) {
                 val obj = args.optJSONObject(0) ?: return
                 val beat = Beat(obj)
                 heartbeats.update { current ->
-                    val list = (current[beat.monitorId].orEmpty() + beat).takeLast(150)
+                    val list = (current[beat.monitorId].orEmpty() + beat)
+                        .distinctBy { "${it.time}|${it.status}|${it.msg}|${it.ping}|${it.duration}" }
+                        .sortedBy { it.timeMillis }
+                        .takeLast(150)
                     current + (beat.monitorId to list)
                 }
                 if (beat.important) {
@@ -336,7 +350,8 @@ class KumaRepository(private val context: Context) {
             "uptime" -> {
                 val id = args.optLong(0)
                 val type = args.optString(1)
-                uptime.update { it + ("${id}_$type" to args.optDouble(2) * 100.0) }
+                val value = args.optDouble(2)
+                if (!value.isNaN()) uptime.update { it + ("${id}_$type" to value * 100.0) }
             }
             "certInfo" -> {
                 val id = args.optLong(0)
@@ -346,7 +361,7 @@ class KumaRepository(private val context: Context) {
                     is String -> try { JSONObject(raw) } catch (_: Exception) { null }
                     else -> null
                 }
-                if (obj != null) certInfo.update { it + (id to obj) }
+                certInfo.update { if (obj != null) it + (id to obj) else it - id }
             }
             "domainInfo" -> {
                 val id = args.optLong(0)
@@ -545,7 +560,7 @@ class KumaRepository(private val context: Context) {
         val ack = socket.requestObject("addTag", JSONObject().put("name", name).put("color", color))
         ensureOk(ack)
         loadTags()
-        return ack.long("tagID")
+        return ack.optJSONObject("tag")?.long("id", 0L) ?: 0L
     }
 
     suspend fun editTag(id: Long, name: String, color: String) {
@@ -608,8 +623,8 @@ class KumaRepository(private val context: Context) {
         return ack.optJSONObject("data") ?: JSONObject()
     }
 
-    suspend fun setSettings(data: JSONObject) {
-        ensureOk(socket.requestObject("setSettings", data, null))
+    suspend fun setSettings(data: JSONObject, currentPassword: String? = null) {
+        ensureOk(socket.requestObject("setSettings", data, currentPassword))
     }
 
     suspend fun changePassword(current: String, newPassword: String) {
@@ -637,7 +652,7 @@ class KumaRepository(private val context: Context) {
 
     /** The server only sends the status page list after a fresh login, so re-authenticate quietly. */
     suspend fun refreshStatusPages() {
-        val saved = prefs.getString("token", null) ?: return
+        val saved = token ?: prefs.getString("token", null) ?: return
         runCatching {
             val ack = socket.requestObject("loginByToken", saved, timeoutMs = 20_000)
             if (ack.bool("ok")) {

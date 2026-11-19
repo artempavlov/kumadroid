@@ -85,7 +85,8 @@ fun IncidentsScreen(repository: KumaRepository, slug: String, onBack: () -> Unit
             val ack = repository.getIncidentHistory(slug, cursor)
             val rows = ack.optJSONArray("incidents") ?: JSONArray()
             val parsed = (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
-            incidents = if (append) incidents + parsed else parsed
+            incidents = (if (append) incidents + parsed else parsed)
+                .distinctBy { it.optString("id").ifBlank { it.toString() } }
             nextCursor = ack.optString("nextCursor").takeIf { it.isNotBlank() }
             hasMore = ack.optBoolean("hasMore")
             error = ""
@@ -128,14 +129,17 @@ fun IncidentsScreen(repository: KumaRepository, slug: String, onBack: () -> Unit
                 )
             }
         }
-        items(incidents, key = { it.optLong("id").toString() }) { incident ->
+        items(incidents, key = { it.optString("id").ifBlank { it.toString() } }) { incident ->
             IncidentCard(
                 incident = incident,
                 onEdit = { editing = incident; showEditor = true },
                 onResolve = {
-                    scope.launch {
+                    val id = incident.optLong("id")
+                    if (id <= 0) {
+                        error = "This incident has no valid identifier."
+                    } else scope.launch {
                         try {
-                            repository.resolveIncident(slug, incident.optLong("id"))
+                            repository.resolveIncident(slug, id)
                             load()
                         } catch (e: Exception) {
                             error = e.message ?: "Could not resolve incident"
@@ -145,10 +149,12 @@ fun IncidentsScreen(repository: KumaRepository, slug: String, onBack: () -> Unit
                 onDelete = { confirmDelete = incident },
             )
         }
-        if (hasMore) {
+        if (hasMore && nextCursor != null) {
             item {
                 OutlinedButton(
-                    onClick = { scope.launch { load(nextCursor, append = true) } },
+                    onClick = {
+                        nextCursor?.let { cursor -> scope.launch { load(cursor, append = true) } }
+                    },
                     enabled = !loading,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                 ) { Text(if (loading) "Loading…" else "Load more") }
@@ -199,9 +205,12 @@ fun IncidentsScreen(repository: KumaRepository, slug: String, onBack: () -> Unit
             confirmLabel = "Delete",
             destructive = true,
             onConfirm = {
-                scope.launch {
+                val id = incident.optLong("id")
+                if (id <= 0) {
+                    error = "This incident has no valid identifier."
+                } else scope.launch {
                     try {
-                        repository.deleteIncident(slug, incident.optLong("id"))
+                        repository.deleteIncident(slug, id)
                         confirmDelete = null
                         load()
                     } catch (e: Exception) {

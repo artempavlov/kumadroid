@@ -30,7 +30,7 @@ class MonitorCatalogTest {
         val monitor = MonitorCatalog.defaultFor("http")
 
         assertEquals("http", monitor.str("type"))
-        assertEquals("http://", monitor.str("url"))
+        assertEquals("https://", monitor.str("url"))
         assertEquals("GET", monitor.str("method"))
         assertEquals("none", monitor.str("expectedTlsAlert"))
         assertEquals(60, monitor.num("interval"))
@@ -49,6 +49,18 @@ class MonitorCatalogTest {
         assertEquals("A", MonitorCatalog.defaultFor("dns").str("dns_resolve_type"))
         assertEquals("starttls", MonitorCatalog.defaultFor("smtp").str("smtpSecurity"))
         assertEquals("client_secret_basic", MonitorCatalog.defaultFor("http").str("oauth_auth_method"))
+        assertEquals(53, MonitorCatalog.defaultFor("dns").num("port"))
+        assertEquals(1812, MonitorCatalog.defaultFor("radius").num("port"))
+        assertEquals(161, MonitorCatalog.defaultFor("snmp").num("port"))
+        assertEquals(123, MonitorCatalog.defaultFor("ntp").num("port"))
+        assertEquals(22, MonitorCatalog.defaultFor("sftp").num("port"))
+        assertEquals(300, MonitorCatalog.defaultFor("ntp").num("interval"))
+        assertEquals(10, MonitorCatalog.defaultFor("ping").num("timeout"))
+        assertEquals(5, MonitorCatalog.defaultFor("snmp").num("timeout"))
+        assertEquals("2c", MonitorCatalog.defaultFor("snmp").str("snmpVersion"))
+        val websocket = MonitorCatalog.defaultFor("websocket-upgrade")
+        assertEquals("wss://", websocket.str("url"))
+        assertEquals("1000", websocket.getJSONArray("accepted_statuscodes").getString(0))
     }
 
     @Test

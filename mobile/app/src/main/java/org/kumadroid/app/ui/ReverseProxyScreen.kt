@@ -48,7 +48,10 @@ fun ReverseProxyScreen(repository: KumaRepository, onBack: () -> Unit) {
     var password by remember { mutableStateOf("") }
     val disabledAuth = settings?.bool("disableAuth") == true
 
-    LaunchedEffect(savedToken) { token = savedToken }
+    LaunchedEffect(savedToken) {
+        // Do not replace a token the user is currently typing when the server pushes an update.
+        if (token.isBlank()) token = savedToken
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -115,7 +118,7 @@ fun ReverseProxyScreen(repository: KumaRepository, onBack: () -> Unit) {
         if (installed) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 KumaCard {
-                    Field(
+                    PasswordField(
                         "Tunnel token",
                         token,
                         { token = it },
@@ -130,20 +133,24 @@ fun ReverseProxyScreen(repository: KumaRepository, onBack: () -> Unit) {
                     ) {
                         Text(if (running) "Stop cloudflared" else "Start cloudflared")
                     }
-                    if (token.isNotBlank()) {
+                    if (savedToken.isNotBlank()) {
                         Spacer(Modifier.height(4.dp))
                         TextButton(
                             onClick = {
+                                busy = true
+                                error = ""
                                 scope.launch {
                                     try {
                                         repository.removeCloudflaredToken()
-                                        token = ""
+                                        if (token == savedToken) token = ""
                                     } catch (e: Exception) {
                                         error = e.message ?: "Could not remove token"
+                                    } finally {
+                                        busy = false
                                     }
                                 }
                             },
-                            enabled = !running,
+                            enabled = !running && !busy,
                         ) { Text("Remove saved token") }
                     }
                 }

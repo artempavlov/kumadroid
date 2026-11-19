@@ -43,6 +43,8 @@ absolute paths into project configuration.
 - The server may return SQLite booleans as `1`/`0` or strings. Use the tolerant helpers in
   `KumaModels.kt` instead of `JSONObject.getBoolean()`.
 - Push monitors need a 32-character `pushToken`; the server does not generate one for clients.
+- A session token belongs to one server. `KumaRepository.configureServer` clears the stored token
+  when the server address changes, so it is never replayed against a different host.
 
 ## UI conventions
 

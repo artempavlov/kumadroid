@@ -84,7 +84,9 @@ class KumaSocket(private val scope: CoroutineScope) {
         closeInternal(notify = false)
         closedByUser = false
         val wsUrl = buildWebSocketUrl(baseUrl) ?: run {
+            // Report a terminal failure so the repository does not stay stuck in Connecting.
             _events.tryEmit(SocketEvent.Error("Invalid server URL"))
+            _events.tryEmit(SocketEvent.Disconnected("Invalid server URL"))
             return
         }
         val okHttp = buildClient(allowInsecureTls)
@@ -208,6 +210,15 @@ class KumaSocket(private val scope: CoroutineScope) {
                 '2' -> {
                     // ping -> pong
                     ws.send("3" + packet.substring(1))
+                }
+                '1' -> {
+                    // Engine.IO close. Forget this socket so a later WebSocket
+                    // close callback does not report a duplicate disconnect.
+                    socketConnected = false
+                    if (this@KumaSocket.webSocket === ws) this@KumaSocket.webSocket = null
+                    pending.values.forEach { it.completeExceptionally(KumaException("Connection closed")) }
+                    pending.clear()
+                    _events.tryEmit(SocketEvent.Disconnected("Server closed the connection"))
                 }
                 '4' -> handleSocketPacket(ws, packet.substring(1))
                 else -> Unit

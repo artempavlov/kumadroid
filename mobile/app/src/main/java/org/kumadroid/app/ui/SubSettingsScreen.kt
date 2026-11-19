@@ -171,7 +171,9 @@ private fun ApiKeysScreen(repository: KumaRepository, onBack: () -> Unit) {
 
     clearKey?.let { value ->
         AlertDialog(
-            onDismissRequest = { clearKey = null },
+            // The server stores only a hash, so the key cannot be shown again.
+            // Do not let an outside tap discard it before it is copied.
+            onDismissRequest = { },
             title = { Text("Copy your API key") },
             text = {
                 Column {
@@ -534,15 +536,24 @@ private fun RemoteBrowsersScreen(repository: KumaRepository, onBack: () -> Unit)
     if (creating || editing != null) {
         val target = editing
         var name by remember(target?.toString(), creating) { mutableStateOf(target?.str("name") ?: "") }
-        var url by remember(target?.toString(), creating) { mutableStateOf(target?.str("url") ?: "http://") }
+        var url by remember(target?.toString(), creating) { mutableStateOf(target?.str("url") ?: "") }
         var busy by remember { mutableStateOf(false) }
+        val trimmedUrl = url.trim()
+        val urlValid = trimmedUrl.matches(Regex("^https?://[^\\s/]+(/\\S*)?$", RegexOption.IGNORE_CASE))
         AlertDialog(
             onDismissRequest = { if (!busy) { creating = false; editing = null } },
             title = { Text(if (target == null) "New remote browser" else "Edit remote browser") },
             text = {
                 Column {
                     Field("Name", name, { name = it })
-                    Field("Browser URL", url, { url = it }, supporting = "For example http://chrome:3000")
+                    Field(
+                        "Browser URL", url, { url = it },
+                        supporting = if (url.isNotBlank() && !urlValid) {
+                            "Enter a full URL including the host, for example http://chrome:3000"
+                        } else {
+                            "For example http://chrome:3000"
+                        },
+                    )
                     if (error.isNotBlank()) {
                         Spacer(Modifier.height(8.dp))
                         Text(error, color = KumaColors.Down, style = MaterialTheme.typography.bodySmall)
@@ -551,13 +562,13 @@ private fun RemoteBrowsersScreen(repository: KumaRepository, onBack: () -> Unit)
             },
             confirmButton = {
                 Button(
-                    enabled = name.isNotBlank() && url.isNotBlank() && !busy,
+                    enabled = name.isNotBlank() && urlValid && !busy,
                     onClick = {
                         scope.launch {
                             busy = true
                             error = ""
                             try {
-                                repository.saveRemoteBrowser(JSONObject().put("name", name.trim()).put("url", url.trim()), target?.long("id"))
+                                repository.saveRemoteBrowser(JSONObject().put("name", name.trim()).put("url", trimmedUrl), target?.long("id"))
                                 creating = false
                                 editing = null
                             } catch (e: Exception) {

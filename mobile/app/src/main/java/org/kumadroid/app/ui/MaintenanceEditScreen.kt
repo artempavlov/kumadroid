@@ -39,6 +39,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.kumadroid.app.data.KumaRepository
 import org.kumadroid.app.data.bool
+import org.kumadroid.app.data.str
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -78,8 +79,14 @@ private fun defaultMaintenance(): JSONObject {
 }
 
 private fun normalizeDate(value: String?): String {
-    if (value.isNullOrBlank()) return ""
+    if (value.isNullOrBlank() || value == "null") return ""
     return value.replace(" ", "T").take(16)
+}
+
+private fun arrayString(array: JSONArray?, index: Int): String? {
+    val value = array?.opt(index) ?: return null
+    if (value == JSONObject.NULL) return null
+    return value as? String ?: value.toString()
 }
 
 private fun parseTime(value: String?): JSONObject {
@@ -101,6 +108,7 @@ fun MaintenanceEditScreen(
     val statusPages by repository.statusPages.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf<JSONObject?>(null) }
+    var savedId by remember { mutableStateOf(maintenanceId?.takeIf { it > 0 }) }
     var loading by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
@@ -141,17 +149,17 @@ fun MaintenanceEditScreen(
                 defaultMaintenance()
             }
             draft = obj
-            title = obj.optString("title")
-            description = obj.optString("description")
-            strategy = obj.optString("strategy", "single")
+            title = obj.str("title")
+            description = obj.str("description")
+            strategy = obj.str("strategy", "single")
             active = obj.bool("active", true)
-            cron = obj.optString("cron", "30 3 * * *")
+            cron = obj.str("cron", "30 3 * * *")
             duration = obj.optInt("durationMinutes", 60).toString()
             intervalDay = obj.optInt("intervalDay", 1).toString()
-            timezone = obj.optString("timezoneOption", "SAME_AS_SERVER")
+            timezone = obj.str("timezoneOption", "SAME_AS_SERVER")
             val dates = obj.optJSONArray("dateRange")
-            dateStart = normalizeDate(dates?.optString(0))
-            dateEnd = normalizeDate(dates?.optString(1))
+            dateStart = normalizeDate(arrayString(dates, 0))
+            dateEnd = normalizeDate(arrayString(dates, 1))
             val times = obj.optJSONArray("timeRange")
             timeStart = timeLabel(times?.optJSONObject(0))
             timeEnd = timeLabel(times?.optJSONObject(1))

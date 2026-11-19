@@ -54,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -287,14 +286,18 @@ fun PasswordField(
     value: String,
     onValueChange: (String) -> Unit,
     supporting: String? = null,
+    placeholder: String? = null,
+    enabled: Boolean = true,
 ) {
     var visible by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = placeholder?.let { { Text(it) } },
         supportingText = supporting?.let { { Text(it) } },
         singleLine = true,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -517,7 +520,6 @@ fun PingChart(points: List<JSONObject>, height: Int = 180) {
                 drawLine(gridColor, Offset(pad, y), Offset(size.width - pad, y), strokeWidth = 1f)
             }
             if (points.isEmpty()) return@Canvas
-            var path: Path? = null
             var last: Offset? = null
             values.forEachIndexed { index, v ->
                 if (v == null) {
@@ -527,18 +529,12 @@ fun PingChart(points: List<JSONObject>, height: Int = 180) {
                 val x = pad + if (values.size <= 1) w / 2 else w * index / (values.size - 1).toFloat()
                 val y = pad + h - (min(v, maxValue) / maxValue).toFloat() * h
                 val point = Offset(x, y)
-                if (path == null) {
-                    path = Path().apply { moveTo(x, y) }
-                } else {
-                    path!!.lineTo(x, y)
-                }
                 last?.let { drawLine(lineColor.copy(alpha = 0.9f), it, point, strokeWidth = 2.2.dp.toPx(), cap = StrokeCap.Round) }
                 if (points.getOrNull(index)?.dbl("down") ?: 0.0 > 0.0) {
                     drawCircle(downColor, radius = 3.2.dp.toPx(), center = point)
                 }
                 last = point
             }
-            path?.let { drawPath(it, lineColor.copy(alpha = 0.10f)) }
         }
         Text(
             "${maxValue.roundToInt()} ms",

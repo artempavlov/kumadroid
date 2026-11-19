@@ -123,8 +123,11 @@ private fun MaintenanceCard(
     val active = maintenance.active
     val strategy = maintenance.strategy
     val dates = maintenance.json.optJSONArray("dateRange")
-    val start = dates?.optString(0).orEmpty().replace("T", " ")
-    val end = dates?.optString(1).orEmpty().replace("T", " ")
+    // Recurring windows send [null, null], and org.json renders JSON null as "null".
+    fun dateAt(index: Int): String =
+        dates?.optString(index).orEmpty().replace("T", " ").takeUnless { it == "null" }.orEmpty()
+    val start = dateAt(0)
+    val end = dateAt(1)
     KumaCard(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), onClick = onClick) {
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

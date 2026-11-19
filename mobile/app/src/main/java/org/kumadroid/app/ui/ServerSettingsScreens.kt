@@ -71,6 +71,9 @@ fun GeneralSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
     var testingChrome by remember { mutableStateOf(false) }
     var tlsDays by remember { mutableStateOf("7, 14, 21") }
     var domainDays by remember { mutableStateOf("7, 14, 21") }
+    var retentionDays by remember { mutableStateOf("180") }
+    var authWasDisabled by remember { mutableStateOf(false) }
+    var currentPassword by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         try {
@@ -78,6 +81,8 @@ fun GeneralSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
             settings = loaded
             tlsDays = loaded.optJSONArray("tlsExpiryNotifyDays")?.joinInts() ?: "7, 14, 21"
             domainDays = loaded.optJSONArray("domainExpiryNotifyDays")?.joinInts() ?: "7, 14, 21"
+            retentionDays = loaded.optInt("keepDataPeriodDays", 180).toString()
+            authWasDisabled = loaded.bool("disableAuth")
         } catch (e: Exception) {
             error = e.message ?: "Could not load settings"
         }
@@ -123,8 +128,8 @@ fun GeneralSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
         item {
             FormSection("Data retention") {
                 Field(
-                    "Keep data for (days)", s.optInt("keepDataPeriodDays", 180).toString(),
-                    { update("keepDataPeriodDays", it.filter(Char::isDigit).toIntOrNull() ?: 0) },
+                    "Keep data for (days)", retentionDays,
+                    { retentionDays = it.filter(Char::isDigit) },
                     supporting = "0 keeps data forever.",
                     keyboardType = KeyboardType.Number,
                 )
@@ -165,12 +170,19 @@ fun GeneralSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                         Modifier.fillMaxWidth(),
                         KumaColors.Down,
                     )
+                    if (!authWasDisabled) {
+                        PasswordField(
+                            "Current password", currentPassword, { currentPassword = it },
+                            supporting = "Required to turn off authentication.",
+                        )
+                    }
                 }
             }
         }
         item {
+            val needsPassword = s.bool("disableAuth") && !authWasDisabled
             Button(
-                enabled = !saving,
+                enabled = !saving && (!needsPassword || currentPassword.isNotBlank()),
                 onClick = {
                     scope.launch {
                         saving = true
@@ -178,10 +190,13 @@ fun GeneralSettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                         toast = ""
                         try {
                             val next = JSONObject(s.toString())
+                            next.put("keepDataPeriodDays", retentionDays.toIntOrNull() ?: 180)
                             next.put("tlsExpiryNotifyDays", parseInts(tlsDays))
                             next.put("domainExpiryNotifyDays", parseInts(domainDays))
-                            repository.setSettings(next)
+                            repository.setSettings(next, currentPassword.takeIf { needsPassword })
                             settings = next
+                            authWasDisabled = next.bool("disableAuth")
+                            currentPassword = ""
                             toast = "Settings saved."
                         } catch (e: Exception) {
                             error = e.message ?: "Could not save settings"
@@ -220,8 +235,11 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
     var tokenValid by remember { mutableStateOf(false) }
     var verifying by remember { mutableStateOf(false) }
     var enabling by remember { mutableStateOf(false) }
+    var preparing by remember { mutableStateOf(false) }
     var disabling by remember { mutableStateOf(false) }
     var disablePassword by remember { mutableStateOf("") }
+    var disableBusy by remember { mutableStateOf(false) }
+    var confirmDisconnect by remember { mutableStateOf(false) }
     var disconnectBusy by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -293,9 +311,10 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                     )
                     PasswordField("Account password", faPassword, { faPassword = it })
                     Button(
-                        enabled = faPassword.isNotBlank(),
+                        enabled = faPassword.isNotBlank() && !preparing,
                         onClick = {
                             scope.launch {
+                                preparing = true
                                 error = ""
                                 toast = ""
                                 try {
@@ -304,11 +323,13 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                                     tokenValid = false
                                 } catch (e: Exception) {
                                     error = e.message ?: "Could not start 2FA setup"
+                                } finally {
+                                    preparing = false
                                 }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Set up authenticator") }
+                    ) { Text(if (preparing) "Preparing…" else "Set up authenticator") }
                 }
                 if (twoFa == true) {
                     PasswordField("Account password", faPassword, { faPassword = it })
@@ -330,25 +351,37 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                 )
                 OutlinedButton(
                     enabled = !disconnectBusy,
-                    onClick = {
-                        scope.launch {
-                            disconnectBusy = true
-                            error = ""
-                            toast = ""
-                            try {
-                                repository.disconnectOtherClients()
-                                toast = "Other sessions disconnected."
-                            } catch (e: Exception) {
-                                error = e.message ?: "Could not disconnect sessions"
-                            } finally {
-                                disconnectBusy = false
-                            }
-                        }
-                    },
+                    onClick = { confirmDisconnect = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(if (disconnectBusy) "Working…" else "Disconnect other sessions") }
             }
         }
+    }
+
+    if (confirmDisconnect) {
+        ConfirmDialog(
+            title = "Disconnect other sessions?",
+            message = "Every other browser and API client signed in to this account will be signed out.",
+            confirmLabel = "Disconnect",
+            destructive = true,
+            onDismiss = { if (!disconnectBusy) confirmDisconnect = false },
+            onConfirm = {
+                scope.launch {
+                    disconnectBusy = true
+                    error = ""
+                    toast = ""
+                    try {
+                        repository.disconnectOtherClients()
+                        toast = "Other sessions disconnected."
+                        confirmDisconnect = false
+                    } catch (e: Exception) {
+                        error = e.message ?: "Could not disconnect sessions"
+                    } finally {
+                        disconnectBusy = false
+                    }
+                }
+            },
+        )
     }
 
     setupUri?.let { uri ->
@@ -425,7 +458,7 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
 
     if (disabling) {
         AlertDialog(
-            onDismissRequest = { disabling = false },
+            onDismissRequest = { if (!disableBusy) disabling = false },
             title = { Text("Disable 2FA?") },
             text = {
                 Column {
@@ -440,9 +473,10 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    enabled = disablePassword.isNotBlank(),
+                    enabled = disablePassword.isNotBlank() && !disableBusy,
                     onClick = {
                         scope.launch {
+                            disableBusy = true
                             error = ""
                             try {
                                 repository.disable2FA(disablePassword)
@@ -453,12 +487,16 @@ fun SecuritySettingsScreen(repository: KumaRepository, onBack: () -> Unit) {
                                 toast = "Two-factor authentication disabled."
                             } catch (e: Exception) {
                                 error = e.message ?: "Could not disable 2FA"
+                            } finally {
+                                disableBusy = false
                             }
                         }
                     },
-                ) { Text("Disable") }
+                ) { Text(if (disableBusy) "Disabling…" else "Disable") }
             },
-            dismissButton = { TextButton(onClick = { disabling = false }) { Text("Cancel") } },
+            dismissButton = {
+                TextButton(onClick = { if (!disableBusy) disabling = false }) { Text("Cancel") }
+            },
         )
     }
 }

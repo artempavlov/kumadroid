@@ -147,7 +147,11 @@ fun MonitorEditScreen(
 
     LaunchedEffect(monitorId, cloneFromId) {
         try {
-            val existing = (monitorId ?: cloneFromId)?.let { repository.getMonitor(it) }
+            val requestedId = monitorId ?: cloneFromId
+            val existing = requestedId?.let { repository.getMonitor(it) }
+            if (existing == null && requestedId != null) {
+                error("This monitor no longer exists. It may have been deleted from another client.")
+            }
             val type = existing?.str("type") ?: "http"
             val base = draft(type, existing)
             if (existing == null && parentId != null) base.put("parent", parentId)
@@ -221,7 +225,9 @@ fun MonitorEditScreen(
         if (type !in setOf("push", "manual", "group")) {
             val url = json.str("url").trim()
             val host = json.str("hostname").trim()
-            if (MonitorCatalog.usesUrl(type) && (url.isBlank() || url == "http://")) {
+            val blankUrl = url.isBlank() || url == "http://" || url == "https://" ||
+                url == "ws://" || url == "wss://"
+            if (MonitorCatalog.usesUrl(type) && blankUrl) {
                 saveError = "A URL is required."
                 return
             }
@@ -233,7 +239,7 @@ fun MonitorEditScreen(
                 saveError = "gRPC URL is required."
                 return
             }
-            if (type == "globalping" && host.isBlank() && (url.isBlank() || url == "http://")) {
+            if (type == "globalping" && host.isBlank() && blankUrl) {
                 saveError = "Hostname or URL is required."
                 return
             }
@@ -257,7 +263,9 @@ fun MonitorEditScreen(
 
         val payload = JSONObject(json.toString())
         payload.put("notificationIDList", json.optJSONObject("notificationIDList") ?: JSONObject())
-        payload.put("port", json.str("port").toIntOrNull() ?: 0)
+        val port = json.str("port").toIntOrNull()?.takeIf { it > 0 }
+            ?: MonitorCatalog.defaultPort(type, json.str("subtype"))
+        payload.put("port", port)
         payload.put("interval", json.str("interval").toIntOrNull() ?: 60)
         payload.put("retryInterval", json.str("retryInterval").toIntOrNull() ?: 60)
         payload.put("resendInterval", json.str("resendInterval").toIntOrNull() ?: 0)
@@ -344,7 +352,15 @@ fun MonitorEditScreen(
     }
 
     val type = current.text("type", "http")
-    val groups = monitors.filter { it.type == "group" && it.id != monitorId }
+    // A group cannot be moved under itself or one of its descendants.
+    val unavailableParents = mutableSetOf<Long>()
+    fun markDescendants(id: Long) {
+        monitors.firstOrNull { it.id == id }?.childrenIds?.forEach { child ->
+            if (unavailableParents.add(child)) markDescendants(child)
+        }
+    }
+    monitorId?.let { unavailableParents.add(it); markDescendants(it) }
+    val groups = monitors.filter { it.type == "group" && it.id !in unavailableParents }
     val parentValue = current.text("parent").let { if (it == "null") "" else it }
     val statusCodeText = current.csv("accepted_statuscodes").ifBlank { "200-299" }
 
@@ -432,7 +448,18 @@ fun MonitorEditScreen(
                         PickerField(
                             "Subtype", current.text("subtype", "http"),
                             listOf("http", "ping", "dns").map { it to it.uppercase() },
-                            { current.set("subtype", it) },
+                            {
+                                current.set("subtype", it)
+                                current.set(
+                                    "protocol",
+                                    when (it) {
+                                        "ping" -> "ICMP"
+                                        "dns" -> "UDP"
+                                        else -> JSONObject.NULL
+                                    },
+                                )
+                                current.set("port", MonitorCatalog.defaultPort("globalping", it))
+                            },
                         )
                         if (current.text("subtype", "http") == "http") {
                             Field("URL", current.text("url"), { current.set("url", it) }, keyboardType = KeyboardType.Uri)

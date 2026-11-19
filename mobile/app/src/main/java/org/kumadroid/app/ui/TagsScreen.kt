@@ -66,7 +66,10 @@ fun TagsScreen(repository: KumaRepository, onBack: () -> Unit) {
                 subtitle = "${tags.size} tag${if (tags.size == 1) "" else "s"}",
                 onBack = onBack,
                 actions = {
-                    IconButton(onClick = { creating = true }) {
+                    IconButton(onClick = {
+                        error = ""
+                        creating = true
+                    }) {
                         Icon(Icons.Default.Add, contentDescription = "Add tag")
                     }
                 },
@@ -91,7 +94,10 @@ fun TagsScreen(repository: KumaRepository, onBack: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TagPill(tag.name, tag.color)
                     Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { editing = tag }) {
+                    IconButton(onClick = {
+                        error = ""
+                        editing = tag
+                    }) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }
                     IconButton(onClick = { deleting = tag }) {

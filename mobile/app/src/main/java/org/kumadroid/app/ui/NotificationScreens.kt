@@ -337,11 +337,60 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
         out.put("active", active)
         out.put("isDefault", isDefault)
         out.put("applyExisting", applyExisting)
+        // Numeric fields are edited as text so a minus sign can be typed.
+        // Convert them back to numbers (or drop blank ones) before sending.
+        fields.filter { it.numeric }.forEach { field ->
+            val value = out.opt(field.key) ?: return@forEach
+            if (value is String) {
+                val text = value.trim()
+                if (text.isEmpty()) {
+                    out.remove(field.key)
+                } else {
+                    out.put(
+                        field.key,
+                        text.toIntOrNull() ?: throw IllegalArgumentException(
+                            "${field.label} must be a whole number.",
+                        ),
+                    )
+                }
+            }
+        }
         return out
     }
 
     fun setField(key: String, value: Any) {
         config = JSONObject(config.toString()).put(key, value)
+    }
+
+    fun configOrError(): JSONObject? = try {
+        currentConfig()
+    } catch (e: Exception) {
+        error = "Configuration is not valid JSON: ${e.message}"
+        null
+    }
+
+    fun useGuidedFields() {
+        val parsed = runCatching { JSONObject(rawText) }.getOrNull()
+        if (parsed == null) {
+            error = "Raw JSON is invalid. Fix it before switching to guided fields."
+            return
+        }
+        parsed.put("type", type)
+        config = parsed
+        rawMode = false
+        error = ""
+    }
+
+    fun editRawJson() {
+        val snapshot = try {
+            currentConfig()
+        } catch (e: Exception) {
+            error = e.message ?: "Configuration is not valid."
+            return
+        }
+        rawText = snapshot.toString(2)
+        rawMode = true
+        error = ""
     }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -359,7 +408,8 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
                                 error = ""
                                 toast = ""
                                 try {
-                                    repository.saveNotification(currentConfig(), initial.optLong("id").takeIf { it > 0 })
+                                    val payload = configOrError() ?: return@launch
+                                    repository.saveNotification(payload, initial.optLong("id").takeIf { it > 0 })
                                     onBack()
                                 } catch (e: Exception) {
                                     error = e.message ?: "Could not save notification"
@@ -381,6 +431,13 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
                     type = it
                     config = JSONObject(config.toString()).put("type", it)
                     rawMode = notificationFields[it].isNullOrEmpty()
+                    if (!rawMode) {
+                        // Keep any fields typed in raw mode that guided fields do not cover.
+                        runCatching { JSONObject(rawText) }.getOrNull()?.let { parsed ->
+                            parsed.put("type", it)
+                            config = parsed
+                        }
+                    }
                     rawText = config.toString(2)
                 })
                 SwitchRow("Active", active, { active = it })
@@ -394,10 +451,7 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
             item {
                 FormSection("Configuration") {
                     if (rawMode) {
-                        OutlinedButton(onClick = {
-                            rawMode = false
-                            config = runCatching { JSONObject(rawText) }.getOrElse { config }
-                        }) { Text("Use guided fields") }
+                        OutlinedButton(onClick = { useGuidedFields() }) { Text("Use guided fields") }
                     }
                     fields.forEach { field ->
                         val value = config.str(field.key)
@@ -410,20 +464,23 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
                                 field.label,
                                 value,
                                 {
-                                    setField(
-                                        field.key,
-                                        if (field.numeric) it.filter(Char::isDigit).toIntOrNull() ?: 0 else it,
-                                    )
+                                    if (field.numeric) {
+                                        // Keep "-" while typing a negative value (Pushover priority can be negative).
+                                        val cleaned = it.filter { ch -> ch.isDigit() || ch == '-' }
+                                        val parsed = cleaned.toIntOrNull()
+                                        if (cleaned.isBlank() || cleaned == "-" || parsed != null) {
+                                            setField(field.key, parsed ?: cleaned)
+                                        }
+                                    } else {
+                                        setField(field.key, it)
+                                    }
                                 },
                                 singleLine = !field.multiline,
                                 keyboardType = if (field.numeric) KeyboardType.Number else KeyboardType.Text,
                             )
                         }
                     }
-                    OutlinedButton(onClick = {
-                        rawText = currentConfig().toString(2)
-                        rawMode = true
-                    }) { Text("Edit raw JSON") }
+                    OutlinedButton(onClick = { editRawJson() }) { Text("Edit raw JSON") }
                 }
             }
         }
@@ -452,7 +509,8 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
                             error = ""
                             toast = ""
                             try {
-                                toast = repository.testNotification(currentConfig())
+                                val payload = configOrError() ?: return@launch
+                                toast = repository.testNotification(payload)
                             } catch (e: Exception) {
                                 error = e.message ?: "Test failed"
                             } finally {
@@ -469,7 +527,8 @@ fun NotificationEditScreen(repository: KumaRepository, draft: String?, onBack: (
                             busy = true
                             error = ""
                             try {
-                                repository.saveNotification(currentConfig(), initial.optLong("id").takeIf { it > 0 })
+                                val payload = configOrError() ?: return@launch
+                                repository.saveNotification(payload, initial.optLong("id").takeIf { it > 0 })
                                 onBack()
                             } catch (e: Exception) {
                                 error = e.message ?: "Could not save notification"
