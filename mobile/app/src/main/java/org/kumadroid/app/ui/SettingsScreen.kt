@@ -128,7 +128,7 @@ fun SettingsScreen(
         item {
             SettingsRow(Icons.Default.Settings, "General", "Server name, timezone, entry page and retention") { onNavigate(Screen.GeneralSettings) }
             SettingsRow(Icons.Default.Security, "Security", "Password, two-factor authentication and API keys") { onNavigate(Screen.SecuritySettings) }
-            SettingsRow(Icons.Default.Storage, "Data", "Database size, maintenance and backups") { onNavigate(Screen.DataSettings) }
+            SettingsRow(Icons.Default.Storage, "Data", "Database size, retention and statistics") { onNavigate(Screen.DataSettings) }
             SettingsRow(Icons.Default.Api, "API keys", "Keys for the push and badge endpoints") { onNavigate(Screen.ApiKeys) }
         }
 
