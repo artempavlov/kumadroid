@@ -51,6 +51,7 @@ import org.kumadroid.app.BuildConfig
 import org.kumadroid.app.data.KumaRepository
 import org.kumadroid.app.data.bool
 import org.kumadroid.app.data.long
+import org.kumadroid.app.data.runtimeLabel
 import org.kumadroid.app.data.str
 
 private fun formatBytes(bytes: Long): String = when {
@@ -664,7 +665,7 @@ fun AboutScreen(repository: KumaRepository, onBack: () -> Unit) {
                 InfoRow("Server version", info?.version?.ifBlank { "—" } ?: "—")
                 InfoRow("Latest version", info?.latestVersion?.ifBlank { "—" } ?: "—")
                 InfoRow("Database", info?.dbType?.ifBlank { "—" } ?: "—")
-                InfoRow("Node.js", info?.nodeVersion?.ifBlank { "—" } ?: "—")
+                InfoRow("Runtime", info?.let { runtimeLabel(it.raw) }?.ifBlank { "—" } ?: "—")
                 InfoRow("Server mode", if (info?.isContainer == true) "Docker container" else "Host process")
             }
         }

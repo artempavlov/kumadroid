@@ -467,7 +467,12 @@ fun MonitorEditScreen(
                             Field("Hostname", current.text("hostname"), { current.set("hostname", it) })
                         }
                         Field("Location", current.text("location", "world"), { current.set("location", it) }, supporting = "Globalping region, for example world, Europe, Germany.")
-                        Field("IP family", current.text("ipFamily"), { current.set("ipFamily", it) }, supporting = "Leave empty for automatic, or enter 4 or 6.")
+                        PickerField(
+                            "IP family",
+                            current.text("ipFamily"),
+                            MonitorCatalog.ipFamilyOptions,
+                            { current.set("ipFamily", if (it.isBlank()) JSONObject.NULL else it) },
+                        )
                     }
                     type == "grpc-keyword" -> {
                         Field("gRPC URL", current.text("grpcUrl"), { current.set("grpcUrl", it) }, keyboardType = KeyboardType.Uri, placeholder = "host:port")

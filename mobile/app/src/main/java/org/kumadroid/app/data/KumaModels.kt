@@ -188,3 +188,23 @@ data class Maintenance(
     val active: Boolean get() = json.bool("active")
     val status: String get() = json.str("status", "inactive")
 }
+
+/** Platform/architecture label from the `runtime` object in the server info event. */
+fun runtimeLabel(raw: JSONObject): String {
+    val runtime = raw.optJSONObject("runtime") ?: return ""
+    return listOf(runtime.str("platform"), runtime.str("arch"))
+        .filter { it.isNotBlank() }
+        .joinToString("/")
+}
+
+/**
+ * `testChrome` acknowledges an i18n message object, not a plain string.
+ * Unwrap the version value so the UI does not show raw JSON.
+ */
+fun chromeTestMessage(raw: Any?, fallback: String = "Chrome test passed"): String = when (raw) {
+    is String -> raw.ifBlank { fallback }
+    is JSONObject -> raw.optJSONArray("values")?.optString(0).orEmpty().ifBlank {
+        raw.str("key", fallback)
+    }
+    else -> fallback
+}

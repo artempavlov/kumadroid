@@ -27,17 +27,25 @@ class KumaRepository(private val context: Context) {
     private val socket = KumaSocket(scope)
     private val prefs = context.getSharedPreferences("kuma_session", Context.MODE_PRIVATE)
 
+    @Volatile
     var serverUrl: String = prefs.getString("baseUrl", "") ?: ""
         private set
+
+    @Volatile
     var allowInsecureTls: Boolean = prefs.getBoolean("allowInsecure", false)
         private set
 
     @Volatile
     private var http = buildHttpClient()
 
+    @Volatile
     private var token: String? = prefs.getString("token", null)
     private var reconnectJob: Job? = null
+
+    @Volatile
     private var reconnectAttempts = 0
+
+    @Volatile
     private var manualDisconnect = false
 
     val status = MutableStateFlow(ConnectionStatus.Idle)
@@ -675,6 +683,9 @@ class KumaRepository(private val context: Context) {
     ): JSONArray {
         val ack = socket.requestObject("saveStatusPage", slug, config, imageDataUrl, publicGroupList, timeoutMs = 40_000)
         ensureOk(ack)
+        // Saving a page does not push a new statusPageList, so the list screen
+        // would keep showing the old title/slug until the next login.
+        refreshStatusPages()
         return ack.optJSONArray("publicGroupList") ?: JSONArray()
     }
 
@@ -876,7 +887,8 @@ class KumaRepository(private val context: Context) {
     suspend fun testChrome(executable: String): String {
         val ack = socket.requestObject("testChrome", executable, timeoutMs = 60_000)
         ensureOk(ack)
-        return ack.str("msg", "Connected")
+        // The server returns an i18n object here, unlike most other handlers.
+        return chromeTestMessage(ack.opt("msg"))
     }
 
     suspend fun disconnectOtherClients() {

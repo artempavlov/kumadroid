@@ -100,7 +100,10 @@ class KumaSocket(private val scope: CoroutineScope) {
 
     fun disconnect() {
         closedByUser = true
-        closeInternal(notify = true)
+        // The repository sets the visible connection state itself. Emitting a
+        // disconnect event here can race with a deliberate reconnect (logout)
+        // and schedule a second connection.
+        closeInternal(notify = false)
     }
 
     private fun closeInternal(notify: Boolean) {

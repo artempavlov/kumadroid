@@ -47,6 +47,7 @@ import org.kumadroid.app.BrandMark
 import org.kumadroid.app.data.ConnectionStatus
 import org.kumadroid.app.data.KumaRepository
 import org.kumadroid.app.data.bool
+import org.kumadroid.app.data.runtimeLabel
 import org.kumadroid.app.data.str
 import org.kumadroid.app.ui.Screen
 
@@ -95,9 +96,10 @@ fun SettingsScreen(
                 }
                 val isContainer = server.raw.bool("isContainer")
                 if (isContainer) {
+                    val runtime = runtimeLabel(server.raw)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Docker container · ${server.raw.str("nodeVersion")}",
+                        if (runtime.isBlank()) "Docker container" else "Docker container · $runtime",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

@@ -80,6 +80,9 @@ object MonitorCatalog {
 
     fun needsDescriptionOnly(type: String) = type in setOf("manual", "group")
 
+    /** Uptime Kuma expects "ipv4"/"ipv6" here, not a bare 4/6. */
+    val ipFamilyOptions = listOf("" to "Automatic", "ipv4" to "IPv4", "ipv6" to "IPv6")
+
     fun defaultPort(type: String, subtype: String? = null): Int = when (type) {
         "dns" -> 53
         "radius" -> 1812
