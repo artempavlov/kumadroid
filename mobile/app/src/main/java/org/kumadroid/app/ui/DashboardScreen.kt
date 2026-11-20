@@ -120,7 +120,11 @@ fun DashboardScreen(
         val nameMatches = needle.isNotEmpty() &&
             (monitor.name.lowercase().contains(needle) || monitor.type.lowercase().contains(needle))
         val inherited = ancestorNameMatches || nameMatches
-        val childVisible = children[monitor.id].orEmpty().any { visit(it, inherited) }
+        // Visit every child: `any` would stop at the first visible one and hide siblings.
+        var childVisible = false
+        children[monitor.id].orEmpty().forEach { child ->
+            if (visit(child, inherited)) childVisible = true
+        }
         val showEmpty = needle.isEmpty() && filter == DashFilter.All
         val visible = childVisible || (filter == DashFilter.All && (nameMatches || showEmpty))
         if (visible) visibleIds += monitor.id
