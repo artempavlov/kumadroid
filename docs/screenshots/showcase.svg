@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2000" height="1400" viewBox="0 0 2000 1400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101A25"/>
+      <stop offset="0.55" stop-color="#0A0F15"/>
+      <stop offset="1" stop-color="#070A0E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#5CDD8B" stop-opacity="0.11"/>
+      <stop offset="0.6" stop-color="#5CDD8B" stop-opacity="0.03"/>
+      <stop offset="1" stop-color="#5CDD8B" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+    <clipPath id="clip0"><rect x="220" y="240" width="480" height="973.333" rx="40"/></clipPath>
+    <clipPath id="clip1"><rect x="760" y="240" width="480" height="973.333" rx="40"/></clipPath>
+    <clipPath id="clip2"><rect x="1300" y="240" width="480" height="973.333" rx="40"/></clipPath>
+  </defs>
+
+  <rect width="2000" height="1400" fill="url(#bg)"/>
+  <ellipse cx="1000" cy="620" rx="920" ry="560" fill="url(#glow)"/>
+
+  <!-- Brand -->
+  <g transform="translate(120,54)">
+    <rect width="64" height="64" rx="17" fill="#2BB673"/>
+    <g transform="translate(32,32) scale(1.15) translate(-54,-54)">
+      <path d="M37,34 L46,34 L46,50 L59,34 L70,34 L53,54 L71,74 L59,74 L46,56 L46,74 L37,74 Z" fill="#07240F"/>
+    </g>
+  </g>
+  <text x="204" y="112" font-family="Inter" font-size="62" font-weight="700" letter-spacing="-1.5" fill="#F3F8FC">KumaDroid</text>
+  <text x="205" y="155" font-family="Inter" font-size="26" fill="#8FA3B8">Uptime Kuma, natively on Android</text>
+  <text x="1880" y="106" text-anchor="end" font-family="Inter" font-size="23" fill="#6C8094">Kotlin · Compose · Material 3</text>
+
+  <line x1="120" y1="196" x2="1880" y2="196" stroke="#1B2733" stroke-width="1"/>
+  <line x1="120" y1="196" x2="340" y2="196" stroke="#5CDD8B" stroke-width="2.5"/>
+
+  <!-- Phone shadows -->
+  <rect x="220" y="262" width="480" height="973.333" rx="40" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
+  <rect x="760" y="262" width="480" height="973.333" rx="40" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
+  <rect x="1300" y="262" width="480" height="973.333" rx="40" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
+
+  <!-- Screens -->
+  <image x="220" y="240" width="480" height="973.333" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip0)" xlink:href="dashboard.png" href="dashboard.png"/>
+  <image x="760" y="240" width="480" height="973.333" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip1)" xlink:href="push-monitor.png" href="push-monitor.png"/>
+  <image x="1300" y="240" width="480" height="973.333" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip2)" xlink:href="status-page.png" href="status-page.png"/>
+
+  <rect x="220" y="240" width="480" height="973.333" rx="40" fill="none" stroke="#2C3A48" stroke-width="2"/>
+  <rect x="760" y="240" width="480" height="973.333" rx="40" fill="none" stroke="#2C3A48" stroke-width="2"/>
+  <rect x="1300" y="240" width="480" height="973.333" rx="40" fill="none" stroke="#2C3A48" stroke-width="2"/>
+
+  <!-- Captions -->
+  <text x="460" y="1282" text-anchor="middle" font-family="Inter" font-size="30" font-weight="600" fill="#E9F0F6">Monitor dashboard</text>
+  <text x="460" y="1317" text-anchor="middle" font-family="Inter" font-size="21" fill="#7F93A8">Live states, tags and groups</text>
+
+  <text x="1000" y="1282" text-anchor="middle" font-family="Inter" font-size="30" font-weight="600" fill="#E9F0F6">Push monitors</text>
+  <text x="1000" y="1317" text-anchor="middle" font-family="Inter" font-size="21" fill="#7F93A8">Ready-to-run push examples</text>
+
+  <text x="1540" y="1282" text-anchor="middle" font-family="Inter" font-size="30" font-weight="600" fill="#E9F0F6">Public status page</text>
+  <text x="1540" y="1317" text-anchor="middle" font-family="Inter" font-size="21" fill="#7F93A8">Incidents, maintenance and uptime</text>
+
+  <text x="1000" y="1372" text-anchor="middle" font-family="Inter" font-size="21" fill="#53677A">Direct Socket.IO connection · No backend · No telemetry</text>
+</svg>

@@ -7,6 +7,17 @@ backend.
 The UI is written in Kotlin and Jetpack Compose. It targets Android 15 (API 35) and supports
 Android 8.0 (API 26) and newer.
 
+<p align="center">
+  <img src="docs/screenshots/showcase.png" alt="KumaDroid monitor dashboard, push monitor and public status page" width="100%">
+</p>
+
+<p align="center">
+  <sub><a href="docs/screenshots/dashboard.png">Dashboard</a> ·
+  <a href="docs/screenshots/production-group.png">Monitor details</a> ·
+  <a href="docs/screenshots/push-monitor.png">Push monitor</a> ·
+  <a href="docs/screenshots/status-page.png">Status page</a></sub>
+</p>
+
 ## Features
 
 - First-run server setup, login, remember-me, and TOTP two-factor authentication.
