@@ -55,6 +55,15 @@ absolute paths into project configuration.
 - Keep UI text in English to match the rest of the app, unless a screen is explicitly localized.
 - Update `README.md` and this file when adding a feature, command, or protocol constraint.
 
+## Launcher icon
+
+The adaptive icon is layered from `drawable/ic_launcher_background.xml`,
+`drawable/ic_launcher_foreground.xml`, and `drawable/ic_launcher_monochrome.xml`; the
+`mipmap-anydpi-v26` files only reference them. Keep the foreground inside the 66dp safe zone of
+the 108dp viewport (the visible area is the center 72dp), otherwise circular launcher masks clip
+the ears. The monochrome layer must stay a single solid silhouette; its eye holes rely on
+counter-clockwise winding under the default `nonZero` fill rule.
+
 ## Verification
 
 The intended end-to-end path is:

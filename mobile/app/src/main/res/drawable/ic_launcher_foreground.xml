@@ -1,10 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Ears and head share one gradient so the overlaps stay seamless. -->
+
+    <path android:pathData="M31,41A7.5,7.5 0 1,1 46,41A7.5,7.5 0 1,1 31,41Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="36"
+                android:startY="32"
+                android:endX="74"
+                android:endY="82"
+                android:startColor="#C9FDDC"
+                android:centerColor="#74E9A0"
+                android:endColor="#2AA966" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M62,41A7.5,7.5 0 1,1 77,41A7.5,7.5 0 1,1 62,41Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="36"
+                android:startY="32"
+                android:endX="74"
+                android:endY="82"
+                android:startColor="#C9FDDC"
+                android:centerColor="#74E9A0"
+                android:endColor="#2AA966" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M32.5,59.5A21.5,21.5 0 1,1 75.5,59.5A21.5,21.5 0 1,1 32.5,59.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="36"
+                android:startY="32"
+                android:endX="74"
+                android:endY="82"
+                android:startColor="#C9FDDC"
+                android:centerColor="#74E9A0"
+                android:endColor="#2AA966" />
+        </aapt:attr>
+    </path>
+
+    <!-- Inner ears. -->
     <path
-        android:fillColor="#07240F"
-        android:pathData="M37,34 L46,34 L46,50 L59,34 L70,34 L53,54 L71,74 L59,74 L46,56 L46,74 L37,74 Z" />
+        android:fillColor="#38A96F"
+        android:pathData="M35.3,41.4A3.2,3.2 0 1,1 41.7,41.4A3.2,3.2 0 1,1 35.3,41.4Z" />
+    <path
+        android:fillColor="#38A96F"
+        android:pathData="M66.3,41.4A3.2,3.2 0 1,1 72.7,41.4A3.2,3.2 0 1,1 66.3,41.4Z" />
+
+    <!-- Muzzle. -->
+    <path
+        android:fillColor="#CBF8DC"
+        android:pathData="M42.2,67.2A11.8,8 0 1,1 65.8,67.2A11.8,8 0 1,1 42.2,67.2Z" />
+
+    <!-- Eyes, highlights and nose. -->
+    <path
+        android:fillColor="#0B2116"
+        android:pathData="M43.3,52.8A2.5,2.5 0 1,1 48.3,52.8A2.5,2.5 0 1,1 43.3,52.8Z" />
+    <path
+        android:fillColor="#0B2116"
+        android:pathData="M59.7,52.8A2.5,2.5 0 1,1 64.7,52.8A2.5,2.5 0 1,1 59.7,52.8Z" />
+    <path
+        android:fillAlpha="0.8"
+        android:fillColor="#FFFFFF"
+        android:pathData="M44.25,51.9A0.75,0.75 0 1,1 45.75,51.9A0.75,0.75 0 1,1 44.25,51.9Z" />
+    <path
+        android:fillAlpha="0.8"
+        android:fillColor="#FFFFFF"
+        android:pathData="M60.65,51.9A0.75,0.75 0 1,1 62.15,51.9A0.75,0.75 0 1,1 60.65,51.9Z" />
+    <path
+        android:fillColor="#0B2116"
+        android:pathData="M54,62.2c2.4,0 4.1,1 4.1,2.4 0,1.5 -1.7,2.2 -4.1,2.2s-4.1,-0.7 -4.1,-2.2c0,-1.4 1.7,-2.4 4.1,-2.4z" />
 </vector>

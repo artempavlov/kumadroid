@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Deep brand gradient. -->
+    <path android:pathData="M0,0H108V108H0Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="43"
+                android:centerY="28"
+                android:gradientRadius="94"
+                android:startColor="#265B3C"
+                android:centerColor="#12291B"
+                android:endColor="#070F0A" />
+        </aapt:attr>
+    </path>
+
+    <!-- Soft mint halo behind the mark. -->
+    <path android:pathData="M0,0H108V108H0Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="58"
+                android:gradientRadius="50"
+                android:startColor="#295CDD8B"
+                android:centerColor="#295CDD8B"
+                android:endColor="#005CDD8B" />
+        </aapt:attr>
+    </path>
+</vector>

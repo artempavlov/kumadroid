@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Single-colour silhouette for themed icons: head and ears merge under
+         the default non-zero fill rule, the counter-clockwise eyes punch holes. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M31,41A7.5,7.5 0 1,1 46,41A7.5,7.5 0 1,1 31,41ZM62,41A7.5,7.5 0 1,1 77,41A7.5,7.5 0 1,1 62,41ZM32.5,59.5A21.5,21.5 0 1,1 75.5,59.5A21.5,21.5 0 1,1 32.5,59.5ZM43.3,52.8A2.5,2.5 0 1,0 48.3,52.8A2.5,2.5 0 1,0 43.3,52.8ZM59.7,52.8A2.5,2.5 0 1,0 64.7,52.8A2.5,2.5 0 1,0 59.7,52.8Z" />
+</vector>
