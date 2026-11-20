@@ -1,8 +1,27 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.isFile) {
+    keystorePropertiesFile.inputStream().use(keystoreProperties::load)
+}
+
+fun releaseSigningValue(environment: String, property: String): String? =
+    System.getenv(environment) ?: keystoreProperties.getProperty(property)
+
+val releaseStoreFile = releaseSigningValue("KEYSTORE_FILE", "storeFile")
+val releaseStorePassword = releaseSigningValue("KEYSTORE_PASSWORD", "storePassword")
+val releaseKeyAlias = releaseSigningValue("KEY_ALIAS", "keyAlias")
+val releaseKeyPassword = releaseSigningValue("KEY_PASSWORD", "keyPassword")
+val hasReleaseSigning =
+    listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword)
+        .all { !it.isNullOrBlank() }
 
 android {
     namespace = "org.kumadroid.app"
@@ -31,9 +50,23 @@ android {
         jvmTarget = "17"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

@@ -18,6 +18,10 @@ Android 8.0 (API 26) and newer.
   <a href="docs/screenshots/status-page.png">Status page</a></sub>
 </p>
 
+## Download
+
+Signed APKs are attached to [Releases](https://github.com/artempavlov/kumadroid/releases).
+
 ## Features
 
 - First-run server setup, login, remember-me, and TOTP two-factor authentication.
@@ -67,7 +71,20 @@ cd mobile
 ```
 
 Unit tests cover JSON normalization, monitor defaults, push-token generation, model mapping,
-and monitor-type contracts. GitHub Actions runs the same checks and uploads the debug APK.
+and monitor-type contracts. GitHub Actions runs the same checks on `main` and pull requests,
+uploads the debug APK as an artifact, and publishes signed release APKs for `v*` tags.
+
+## Release
+
+Create and push a version tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+`versionName` in `mobile/app/build.gradle.kts` must match the tag. The workflow builds, signs,
+and attaches `kumadroid-v1.0.0.apk` to the GitHub release.
 
 ## Run
 

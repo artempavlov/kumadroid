@@ -9,6 +9,7 @@ server's own Socket.IO and REST APIs. There is no application backend and no loc
 
 - `mobile/` — Android app (Kotlin, Compose, OkHttp).
 - `.github/workflows/android.yml` — unit tests, lint, and debug APK build.
+- `.github/workflows/release.yml` — signed release APK for `v*` tags.
 - `opencode.json` — local `mobile-mcp` server configuration.
 
 ## Commands
@@ -25,6 +26,13 @@ Install the debug build:
 ```bash
 adb install -r mobile/app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n org.kumadroid.app/.MainActivity
+```
+
+Build a signed release APK locally (requires the keystore described below):
+
+```bash
+cd mobile
+./gradlew test lint assembleRelease
 ```
 
 Use `.tmp/` for generated files, captures, and research. It is ignored by Git. Do not write
@@ -64,6 +72,19 @@ the 108dp viewport (the visible area is the center 72dp), otherwise circular lau
 the ears. The monochrome layer must stay a single solid silhouette; its eye holes rely on
 counter-clockwise winding under the default `nonZero` fill rule.
 
+## Release signing
+
+Release builds are signed with a private keystore. Locally, `mobile/keystore.properties` points to
+`mobile/keystore/release.jks`; both files are ignored by Git. The environment variables
+`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` override the properties.
+
+GitHub Actions reads the same values from the `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
+and `KEY_PASSWORD` repository secrets. Never commit the keystore or its passwords. Losing the key
+breaks upgrades for every installed copy.
+
+Push a `vX.Y.Z` tag to publish a release. The tag must match `versionName` in
+`mobile/app/build.gradle.kts`.
+
 ## Verification
 
 The intended end-to-end path is:
@@ -102,4 +123,5 @@ documentation, and CI configuration; the build must work with a plain Gradle set
 ## Git
 
 The repository uses one commit per logical task. Write commit messages in the repository's
-existing style once a history exists. Do not commit `.tmp/`, APKs, local SDK paths, or secrets.
+existing style once a history exists. Do not commit `.tmp/`, APKs, local SDK paths, keystores, or
+secrets.
