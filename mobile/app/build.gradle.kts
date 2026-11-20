@@ -23,6 +23,9 @@ val hasReleaseSigning =
     listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword)
         .all { !it.isNullOrBlank() }
 
+val ciVersionName = providers.gradleProperty("kumadroid.versionName").orNull
+val ciVersionCode = providers.gradleProperty("kumadroid.versionCode").orNull?.toIntOrNull()
+
 android {
     namespace = "org.kumadroid.app"
     compileSdk = 35
@@ -32,8 +35,8 @@ android {
         applicationId = "org.kumadroid.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = ciVersionCode ?: 1
+        versionName = ciVersionName ?: "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

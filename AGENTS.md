@@ -8,8 +8,8 @@ KumaDroid is a native Android client for Uptime Kuma. It is intentionally a thin
 server's own Socket.IO and REST APIs. There is no application backend and no local database.
 
 - `mobile/` — Android app (Kotlin, Compose, OkHttp).
-- `.github/workflows/android.yml` — unit tests, lint, and debug APK build.
-- `.github/workflows/release.yml` — signed release APK for `v*` tags.
+- `.github/workflows/android.yml` — unit tests, lint, and debug APK build for pull requests.
+- `.github/workflows/release.yml` — signed prerelease on each `main` push and stable release on `v*` tags.
 - `opencode.json` — local `mobile-mcp` server configuration.
 
 ## Commands
@@ -82,8 +82,10 @@ GitHub Actions reads the same values from the `KEYSTORE_BASE64`, `KEYSTORE_PASSW
 and `KEY_PASSWORD` repository secrets. Never commit the keystore or its passwords. Losing the key
 breaks upgrades for every installed copy.
 
-Push a `vX.Y.Z` tag to publish a release. The tag must match `versionName` in
-`mobile/app/build.gradle.kts`.
+Every push to `main` publishes a prerelease tagged `v<base>-main.<short sha>`. Pushing a `vX.Y.Z`
+tag publishes a stable release. The workflow injects `versionName` from the tag and `versionCode`
+from the workflow run number through the `kumadroid.versionName` and `kumadroid.versionCode` Gradle
+properties.
 
 ## Verification
 
