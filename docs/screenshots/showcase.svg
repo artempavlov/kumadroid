@@ -13,9 +13,9 @@
     <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="26"/>
     </filter>
-    <clipPath id="clip0"><rect x="220" y="260" width="480" height="973.333" rx="40"/></clipPath>
-    <clipPath id="clip1"><rect x="760" y="260" width="480" height="973.333" rx="40"/></clipPath>
-    <clipPath id="clip2"><rect x="1300" y="260" width="480" height="973.333" rx="40"/></clipPath>
+    <clipPath id="clip0"><rect x="220" y="260" width="480" height="973.333" rx="24"/></clipPath>
+    <clipPath id="clip1"><rect x="760" y="260" width="480" height="973.333" rx="24"/></clipPath>
+    <clipPath id="clip2"><rect x="1300" y="260" width="480" height="973.333" rx="24"/></clipPath>
   </defs>
 
   <rect width="2000" height="1400" fill="url(#bg)"/>
@@ -36,23 +36,23 @@
   <line x1="120" y1="196" x2="340" y2="196" stroke="#5CDD8B" stroke-width="2.5"/>
 
   <!-- Phone bodies (20 px top bezel, 24 px chin below the screens) -->
-  <rect x="220" y="240" width="480" height="1017.333" rx="40" fill="#05070A"/>
-  <rect x="760" y="240" width="480" height="1017.333" rx="40" fill="#05070A"/>
-  <rect x="1300" y="240" width="480" height="1017.333" rx="40" fill="#05070A"/>
+  <rect x="220" y="240" width="480" height="1017.333" rx="24" fill="#05070A"/>
+  <rect x="760" y="240" width="480" height="1017.333" rx="24" fill="#05070A"/>
+  <rect x="1300" y="240" width="480" height="1017.333" rx="24" fill="#05070A"/>
 
   <!-- Phone shadows -->
-  <rect x="220" y="262" width="480" height="1017.333" rx="40" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
-  <rect x="760" y="262" width="480" height="1017.333" rx="40" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
-  <rect x="1300" y="262" width="480" height="1017.333" rx="40" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
+  <rect x="220" y="262" width="480" height="1017.333" rx="24" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
+  <rect x="760" y="262" width="480" height="1017.333" rx="24" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
+  <rect x="1300" y="262" width="480" height="1017.333" rx="24" fill="#000000" opacity="0.6" filter="url(#shadow)"/>
 
   <!-- Screens -->
   <image x="220" y="260" width="480" height="973.333" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip0)" xlink:href="dashboard.png" href="dashboard.png"/>
   <image x="760" y="260" width="480" height="973.333" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip1)" xlink:href="push-monitor.png" href="push-monitor.png"/>
   <image x="1300" y="260" width="480" height="973.333" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip2)" xlink:href="status-page.png" href="status-page.png"/>
 
-  <rect x="220" y="240" width="480" height="1017.333" rx="40" fill="none" stroke="#2C3A48" stroke-width="2"/>
-  <rect x="760" y="240" width="480" height="1017.333" rx="40" fill="none" stroke="#2C3A48" stroke-width="2"/>
-  <rect x="1300" y="240" width="480" height="1017.333" rx="40" fill="none" stroke="#2C3A48" stroke-width="2"/>
+  <rect x="220" y="240" width="480" height="1017.333" rx="24" fill="none" stroke="#2C3A48" stroke-width="2"/>
+  <rect x="760" y="240" width="480" height="1017.333" rx="24" fill="none" stroke="#2C3A48" stroke-width="2"/>
+  <rect x="1300" y="240" width="480" height="1017.333" rx="24" fill="none" stroke="#2C3A48" stroke-width="2"/>
 
   <!-- Captions -->
   <text x="460" y="1310" text-anchor="middle" font-family="Inter" font-size="30" font-weight="600" fill="#E9F0F6">Monitor dashboard</text>
