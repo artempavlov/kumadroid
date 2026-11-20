@@ -20,8 +20,8 @@ Android 8.0 (API 26) and newer.
 
 ## Download
 
-Signed APKs are attached to [Releases](https://github.com/artempavlov/kumadroid/releases). Each
-push to `main` publishes a prerelease; stable versions are tagged.
+Signed APKs are attached to [Releases](https://github.com/artempavlov/kumadroid/releases). Every
+push to `main` and every version tag publishes a release.
 
 ## Features
 
@@ -73,11 +73,11 @@ cd mobile
 
 Unit tests cover JSON normalization, monitor defaults, push-token generation, model mapping,
 and monitor-type contracts. GitHub Actions runs the same checks on pull requests and publishes a
-signed prerelease for every push to `main`.
+signed release for every push to `main`.
 
 ## Release
 
-Every push to `main` publishes a prerelease with a signed APK, tagged
+Every push to `main` publishes a release with a signed APK, tagged
 `v<latest-stable>-main.<commit>` (for example `v1.0.0-main.25c6348`).
 
 Push a version tag to publish a stable release:

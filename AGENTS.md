@@ -9,7 +9,7 @@ server's own Socket.IO and REST APIs. There is no application backend and no loc
 
 - `mobile/` — Android app (Kotlin, Compose, OkHttp).
 - `.github/workflows/android.yml` — unit tests, lint, and debug APK build for pull requests.
-- `.github/workflows/release.yml` — signed prerelease on each `main` push and stable release on `v*` tags.
+- `.github/workflows/release.yml` — signed release on each `main` push and on `v*` tags.
 - `opencode.json` — local `mobile-mcp` server configuration.
 
 ## Commands
@@ -82,7 +82,7 @@ GitHub Actions reads the same values from the `KEYSTORE_BASE64`, `KEYSTORE_PASSW
 and `KEY_PASSWORD` repository secrets. Never commit the keystore or its passwords. Losing the key
 breaks upgrades for every installed copy.
 
-Every push to `main` publishes a prerelease tagged `v<base>-main.<short sha>`. Pushing a `vX.Y.Z`
+Every push to `main` publishes a release tagged `v<base>-main.<short sha>`. Pushing a `vX.Y.Z`
 tag publishes a stable release. The workflow injects `versionName` from the tag and `versionCode`
 from the workflow run number through the `kumadroid.versionName` and `kumadroid.versionCode` Gradle
 properties.
