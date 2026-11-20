@@ -67,7 +67,8 @@ cd mobile
 ```
 
 Unit tests cover JSON normalization, monitor defaults, push-token generation, model mapping,
-and monitor-type contracts. CI runs the same checks and uploads the debug APK.
+and monitor-type contracts. GitLab CI and the GitHub Actions workflow run the same checks and
+upload the debug APK.
 
 ## Run
 
@@ -104,6 +105,18 @@ The repository includes an `opencode.json` entry for `@mobilenext/mobile-mcp`. D
 manual verification use a redroid/Android emulator exposed to the MCP server over ADB. See
 `AGENTS.md` for the local test workflow.
 
+## Repository
+
+GitLab is the primary repository. GitHub is a read-only push mirror that is updated
+automatically; open issues and merge requests on GitLab. Do not commit to the GitHub mirror,
+because the next mirror update overwrites its branches.
+
 ## License
 
-No license has been selected yet. Treat the source as private until a license is added.
+KumaDroid is free software: you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+KumaDroid is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+[LICENSE](LICENSE) file for the full text.

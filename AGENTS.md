@@ -8,7 +8,7 @@ KumaDroid is a native Android client for Uptime Kuma. It is intentionally a thin
 server's own Socket.IO and REST APIs. There is no application backend and no local database.
 
 - `mobile/` — Android app (Kotlin, Compose, OkHttp).
-- `.gitlab-ci.yml` — unit tests, lint, and debug APK build.
+- `.gitlab-ci.yml`, `.github/workflows/android.yml` — unit tests, lint, and debug APK build.
 - `opencode.json` — local `mobile-mcp` server configuration.
 
 ## Commands
@@ -66,7 +66,8 @@ The intended end-to-end path is:
    well as the UI.
 5. Delete test data, then run `./gradlew test lint assembleDebug`.
 
-Local test instance used during development:
+Local test instance used during development (example values; keep real connection details out of
+the repository):
 
 - Uptime Kuma: `http://<host>:<port>`
 - Login: `admin` / `<test password>`
@@ -83,6 +84,11 @@ should be upgraded as one tested change. `ObsoleteSdkInt` for
 `mipmap-anydpi` breaks resource linking. `AuthLeak` for connection-string placeholders and
 `CustomX509TrustManager` for the opt-in self-signed mode are suppressed narrowly with comments.
 Do not remove TLS verification or password fields to silence warnings.
+
+## Repository and mirrors
+
+GitLab is the primary repository. GitHub is a read-only push mirror; never commit or merge on
+the GitHub side, because the next mirror update overwrites its branches.
 
 ## Git
 
