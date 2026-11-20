@@ -67,8 +67,7 @@ cd mobile
 ```
 
 Unit tests cover JSON normalization, monitor defaults, push-token generation, model mapping,
-and monitor-type contracts. GitLab CI and the GitHub Actions workflow run the same checks and
-upload the debug APK.
+and monitor-type contracts. GitHub Actions runs the same checks and uploads the debug APK.
 
 ## Run
 
@@ -107,9 +106,7 @@ manual verification use a redroid/Android emulator exposed to the MCP server ove
 
 ## Repository
 
-GitLab is the primary repository. GitHub is a read-only push mirror that is updated
-automatically; open issues and merge requests on GitLab. Do not commit to the GitHub mirror,
-because the next mirror update overwrites its branches.
+The application source is published on GitHub.
 
 ## License
 
