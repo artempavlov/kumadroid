@@ -117,3 +117,7 @@ License, or (at your option) any later version.
 KumaDroid is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
 even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 [LICENSE](LICENSE) file for the full text.
+
+---
+
+Entirely vibe-slopped.
